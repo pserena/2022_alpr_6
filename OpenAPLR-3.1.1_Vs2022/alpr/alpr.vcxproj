@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\libs\libopenalpr\statedetection\featurematcher.cpp" />
     <ClCompile Include="..\libs\libopenalpr\statedetection\line_segment.cpp" />
     <ClCompile Include="..\libs\libopenalpr\statedetection\state_detector.cpp" />
     <ClCompile Include="..\libs\libopenalpr\statedetection\state_detector_impl.cpp" />
