@@ -247,8 +247,12 @@ BlobSpecialTextType EquationDetect::EstimateTypeForUnichar(
     // Exclude some special texts that are likely to be confused as math symbol.
     static GenericVector<UNICHAR_ID> ids_to_exclude;
     if (ids_to_exclude.empty()) {
+#if 0 // wk: Delete unicode characters to build
       static const STRING kCharsToEx[] = {"'", "`", "\"", "\\", ",", ".",
           "〈", "〉", "《", "》", "」", "「", ""};
+#else
+        static const STRING kCharsToEx[] = { "'", "`", "\"", "\\", ",", "." };
+#endif
       int i = 0;
       while (kCharsToEx[i] != "") {
         ids_to_exclude.push_back(
