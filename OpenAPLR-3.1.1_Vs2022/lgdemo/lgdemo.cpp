@@ -18,7 +18,7 @@ using namespace std;
 using namespace cv;
 
 
-enum class Mode { mNone, mLive_Video,mPlayback_Video, mImage_File };
+enum class Mode { mNone, mLive_Video,mPlayback_Video, mImage_File, mTest_Connection };
 enum class VideoResolution { rNone, r640X480, r1280X720 };
 enum class VideoSaveMode { vNone, vNoSave, vSave, vSaveWithNoALPR};
 enum class ResponseMode { ReadingHeader,ReadingMsg };
@@ -94,6 +94,11 @@ int main()
     mode = GetVideoMode();
     if (mode == Mode::mNone) exit(0);
 
+    if (mode == Mode::mTest_Connection) {        
+        destroyAllWindows();
+        CloseTcpConnectedPort(&TcpConnectedPort);
+        return 0;
+    }
 
     if (mode == Mode::mLive_Video)
     {
@@ -490,6 +495,7 @@ static Mode GetVideoMode(void)
         std::cout << "1 - Live Video" << std::endl;
         std::cout << "2 - PlayBack File" << std::endl;
         std::cout << "3 - Image File" << std::endl;
+        std::cout << "4 - Test Connection" << std::endl;
         std::cout << "E - Exit" << std::endl;
 
         getconchar(key);
@@ -498,6 +504,7 @@ static Mode GetVideoMode(void)
         else if (key.uChar.AsciiChar == '1') mode = Mode::mLive_Video;
         else if (key.uChar.AsciiChar == '2') mode = Mode::mPlayback_Video;
         else if (key.uChar.AsciiChar == '3') mode = Mode::mImage_File;
+        else if (key.uChar.AsciiChar == '4') mode = Mode::mTest_Connection;
         else std::cout << "Invalid Input" << std::endl << std::endl;
     } while (mode == Mode::mNone);
     return(mode);
