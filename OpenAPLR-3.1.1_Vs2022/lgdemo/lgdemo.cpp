@@ -18,7 +18,7 @@ using namespace std;
 using namespace cv;
 
 
-enum class Mode { mNone, mLive_Video,mPlayback_Video, mImage_File, mTest_Connection };
+enum class Mode { mNone, mLogin, mLogout, mPlayback_Video, mImage_File, mTest_Connection };
 enum class VideoResolution { rNone, r640X480, r1280X720 };
 enum class VideoSaveMode { vNone, vNoSave, vSave, vSaveWithNoALPR};
 enum class ResponseMode { ReadingHeader,ReadingMsg };
@@ -91,145 +91,135 @@ int main()
 
     county = "us";
 
-    mode = GetVideoMode();
-    if (mode == Mode::mNone) exit(0);
+    while (1) {
+        mode = GetVideoMode();
+        if (mode == Mode::mNone) exit(0);
 
-    if (mode == Mode::mTest_Connection) {        
-        destroyAllWindows();
-        CloseTcpConnectedPort(&TcpConnectedPort);
-        return 0;
-    }
+        if (mode == Mode::mTest_Connection) {
+            destroyAllWindows();
+            CloseTcpConnectedPort(&TcpConnectedPort);
+            return 0;
+        }
 
-    if (mode == Mode::mLive_Video)
-    {
-        deviceID = GetVideoDevice();
-        if (deviceID == -1) exit(0);
-        vres = GetVideoResolution();
-        if (vres == VideoResolution::rNone) exit(0);
-    }
-    else
-    {
+        if (mode == Mode::mLogin) {
+            continue;
+        } else if (mode == Mode::mLogout) {
+            continue;
+        }
+
         if (GetFileName(mode, filename)) std::cout << "Filename is " << filename << std::endl;
         else exit(0);
-    }
 
-    if (mode != Mode::mImage_File)
-    {
-        videosavemode = GetVideoSaveMode();
-        if (videosavemode == VideoSaveMode::vNone) exit(0);
-    }
-    else videosavemode = VideoSaveMode::vNoSave;
-
-    Alpr alpr(county, "");
-    alpr.setTopN(2);
-    if (alpr.isLoaded() == false)
-    {
-        std::cerr << "Error loading OpenALPR" << std::endl;
-        return 1;
-    }
-
-    if (mode == Mode::mLive_Video)
-    {
-        // open selected camera using selected API
-        cap.open(deviceID, apiID);
-        if (!cap.isOpened()) {
-            cout << "Error opening video stream" << endl;
-            return -1;
-        }
-    }
-    else if (mode == Mode::mPlayback_Video)
-    {
-        cap.open(filename);
-        if (!cap.isOpened()) {
-            cout << "Error opening video file" << endl;
-            return -1;
-        }
-    }
-
-    if (vres == VideoResolution::r1280X720)
-    {
-        cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
-        cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
-    }
-    else if (vres == VideoResolution::r640X480)
-    {
-        cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-        cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-    }
-    if (mode != Mode::mImage_File)
-    {
-        // Default resolutions of the frame are obtained.The default resolutions are system dependent.
-        int frame_width = (int)cap.get(cv::CAP_PROP_FRAME_WIDTH);
-        int frame_height = (int)cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-        printf("Frame width= %d height=%d\n", frame_width, frame_height);
-
-
-        // Define the codec and create VideoWriter object.The output is stored in 'outcpp.avi' file.
-        if (videosavemode != VideoSaveMode::vNoSave)
+        if (mode != Mode::mImage_File)
         {
+            videosavemode = GetVideoSaveMode();
+            if (videosavemode == VideoSaveMode::vNone) exit(0);
+        }
+        else videosavemode = VideoSaveMode::vNoSave;
 
-            outputVideo.open("output.avi", VideoWriter::fourcc('M', 'J', 'P', 'G'), 25, Size(frame_width, frame_height), true);
-            if (!outputVideo.isOpened())
-            {
-                cout << "Could not open the output video for write" << endl;
+        Alpr alpr(county, "");
+        alpr.setTopN(2);
+        if (alpr.isLoaded() == false)
+        {
+            std::cerr << "Error loading OpenALPR" << std::endl;
+            return 1;
+        }
+
+        if (mode == Mode::mPlayback_Video)
+        {
+            cap.open(filename);
+            if (!cap.isOpened()) {
+                cout << "Error opening video file" << endl;
                 return -1;
             }
         }
+
+        if (vres == VideoResolution::r1280X720)
+        {
+            cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
+            cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
+        }
+        else if (vres == VideoResolution::r640X480)
+        {
+            cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+            cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+        }
+        if (mode != Mode::mImage_File)
+        {
+            // Default resolutions of the frame are obtained.The default resolutions are system dependent.
+            int frame_width = (int)cap.get(cv::CAP_PROP_FRAME_WIDTH);
+            int frame_height = (int)cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+            printf("Frame width= %d height=%d\n", frame_width, frame_height);
+
+
+            // Define the codec and create VideoWriter object.The output is stored in 'outcpp.avi' file.
+            if (videosavemode != VideoSaveMode::vNoSave)
+            {
+
+                outputVideo.open("output.avi", VideoWriter::fourcc('M', 'J', 'P', 'G'), 25, Size(frame_width, frame_height), true);
+                if (!outputVideo.isOpened())
+                {
+                    cout << "Could not open the output video for write" << endl;
+                    return -1;
+                }
+            }
+        }
+
+
+        while (1) {
+
+            Mat frame;
+            double start = CLOCK();
+            // Capture frame-by-frame
+            if (mode == Mode::mImage_File)
+            {
+                frame = imread(filename);
+            }
+            else cap >> frame;
+
+            // 
+            // If the frame is empty, break immediately
+            if (frame.empty())
+                break;
+
+            if (frameno == 0) motiondetector.ResetMotionDetection(&frame);
+            if (videosavemode != VideoSaveMode::vSaveWithNoALPR)
+            {
+                detectandshow(&alpr, frame, "", false);
+                GetResponses();
+
+                cv::putText(frame, text,
+                    cv::Point(10, frame.rows - 10), //top-left position
+                    FONT_HERSHEY_COMPLEX_SMALL, 0.5,
+                    Scalar(0, 255, 0), 0, LINE_AA, false);
+            }
+
+            // Write the frame into the file 'outcpp.avi'
+            if (videosavemode != VideoSaveMode::vNoSave)
+            {
+                outputVideo.write(frame);
+            }
+
+            // Display the resulting frame
+            imshow("Frame", frame);
+
+            // Press  ESC on keyboard to  exit
+            char c = (char)waitKey(1);
+            if (c == 27)
+                break;
+            double dur = CLOCK() - start;
+            sprintf_s(text, "avg time per frame %f ms. fps %f. frameno = %d", avgdur(dur), avgfps(), frameno++);
+        }
+
+        // When everything done, release the video capture and write object
+        cap.release();
+        if (videosavemode != VideoSaveMode::vNoSave)  outputVideo.release();
+
+        // Closes all the frames
+        destroyAllWindows();
     }
 
-
-    while (1) {
-
-        Mat frame;
-        double start = CLOCK();
-        // Capture frame-by-frame
-        if (mode == Mode::mImage_File)
-        {
-            frame = imread(filename);
-        }
-        else cap >> frame;
-
-        // 
-        // If the frame is empty, break immediately
-        if (frame.empty())
-            break;
-
-        if (frameno == 0) motiondetector.ResetMotionDetection(&frame);
-        if (videosavemode != VideoSaveMode::vSaveWithNoALPR)
-        {
-            detectandshow(&alpr, frame, "", false);
-            GetResponses();
-
-            cv::putText(frame, text,
-                cv::Point(10, frame.rows - 10), //top-left position
-                FONT_HERSHEY_COMPLEX_SMALL, 0.5,
-                Scalar(0, 255, 0), 0, LINE_AA, false);
-
-        }
-
-        // Write the frame into the file 'outcpp.avi'
-        if (videosavemode != VideoSaveMode::vNoSave)
-        {
-            outputVideo.write(frame);
-        }
-
-        // Display the resulting frame    
-        imshow("Frame", frame);
-
-        // Press  ESC on keyboard to  exit
-        char c = (char)waitKey(1);
-        if (c == 27)
-            break;
-        double dur = CLOCK() - start;
-        sprintf_s(text, "avg time per frame %f ms. fps %f. frameno = %d", avgdur(dur), avgfps(), frameno++);
-    }
-
-    // When everything done, release the video capture and write object
-    cap.release();
-    if (videosavemode != VideoSaveMode::vNoSave)  outputVideo.release();
-
-    // Closes all the frames
-    destroyAllWindows();
+    
     return 0;
 }
 /***********************************************************************************/
@@ -259,6 +249,7 @@ static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool wr
     timespec endTime;
     getTimeMonotonic(&endTime);
     double totalProcessingTime = diffclock(startTime, endTime);
+    
     if (measureProcessingTime)
         std::cout << "Total Time to process image: " << totalProcessingTime << "ms." << std::endl;
 
@@ -492,19 +483,21 @@ static Mode GetVideoMode(void)
     do
     {
         std::cout << "Select Live Video, PlayBack File or Image File" << std::endl;
-        std::cout << "1 - Live Video" << std::endl;
-        std::cout << "2 - PlayBack File" << std::endl;
-        std::cout << "3 - Image File" << std::endl;
-        std::cout << "4 - Test Connection" << std::endl;
+        std::cout << "1 - Login" << std::endl;
+        std::cout << "2 - Logout" << std::endl;
+        std::cout << "3 - PlayBack File" << std::endl;
+        std::cout << "4 - Image File" << std::endl;
+        std::cout << "5 - Test Connection" << std::endl;
         std::cout << "E - Exit" << std::endl;
 
         getconchar(key);
         std::cout << key.uChar.AsciiChar << std::endl;
         if ((key.uChar.AsciiChar == 'E') || (key.uChar.AsciiChar == 'e')) break;
-        else if (key.uChar.AsciiChar == '1') mode = Mode::mLive_Video;
-        else if (key.uChar.AsciiChar == '2') mode = Mode::mPlayback_Video;
-        else if (key.uChar.AsciiChar == '3') mode = Mode::mImage_File;
-        else if (key.uChar.AsciiChar == '4') mode = Mode::mTest_Connection;
+        else if (key.uChar.AsciiChar == '1') mode = Mode::mLogin;
+        else if (key.uChar.AsciiChar == '2') mode = Mode::mLogout;
+        else if (key.uChar.AsciiChar == '3') mode = Mode::mPlayback_Video;
+        else if (key.uChar.AsciiChar == '4') mode = Mode::mImage_File;
+        else if (key.uChar.AsciiChar == '5') mode = Mode::mTest_Connection;
         else std::cout << "Invalid Input" << std::endl << std::endl;
     } while (mode == Mode::mNone);
     return(mode);
