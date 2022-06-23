@@ -74,6 +74,15 @@ TTcpListenPort *OpenTcpListenPort(short localport)
       perror("bind failed");
       return(NULL);	  
   }
+
+  ULONG NonBlock = 1;
+  if (ioctlsocket(TcpListenPort->ListenFd, FIONBIO, &NonBlock) == SOCKET_ERROR)
+  {
+      perror("ioctlsocket() failed with error");
+      return(NULL);
+  }
+  else
+      printf("ioctlsocket() is OK!\n");
   return(TcpListenPort);
 }
 //-----------------------------------------------------------------
@@ -124,7 +133,7 @@ TTcpConnectedPort *AcceptTcpConnection(TTcpListenPort *TcpListenPort,
 	delete TcpConnectedPort;
 	return NULL;
   }
-  
+#if 0
  int bufsize = 200 * 1024;
  if (setsockopt(TcpConnectedPort->ConnectedFd, SOL_SOCKET, 
                  SO_RCVBUF, (char *)&bufsize, sizeof(bufsize)) == -1)
@@ -140,8 +149,17 @@ TTcpConnectedPort *AcceptTcpConnection(TTcpListenPort *TcpListenPort,
          perror("setsockopt SO_SNDBUF failed");
          return(NULL);
 	}
+#endif
 
-
+ ULONG NonBlock = 1;
+  if (ioctlsocket(TcpConnectedPort->ConnectedFd, FIONBIO, &NonBlock) == SOCKET_ERROR)
+ {
+     printf("ioctlsocket(FIONBIO) failed with error %d\n", WSAGetLastError());
+     CloseTcpConnectedPort(&TcpConnectedPort);
+     return(NULL);
+ }
+ else
+     printf("ioctlsocket(FIONBIO) is OK!\n");
  return TcpConnectedPort;
 }
 //-----------------------------------------------------------------
