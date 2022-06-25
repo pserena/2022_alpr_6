@@ -50,18 +50,18 @@ def append_original_data(f):
 def append_new_data(f):
     # 25,000,000 data
     num = 25
-    num = (num * 1000 * 1000) + 1
+    num = (num * 1000 * 1000)
 
     gen = (fake.unique.license_plate() for i in range(num))
 
     i = 1
-    for license_plate in gen:
+    for i in range(1, num+1):
+        license_plate = next(gen)
         plate = license_plate.replace(" ", "")
         plate = plate.replace("-", "")
 
         if plate in sample:
             # skip samples - unique plate number
-            next(gen)
             continue
 
         rnum = fake.pyint(1, 100)
@@ -93,7 +93,6 @@ def append_new_data(f):
             print(f'progress: write {i} data')
 
         i += 1
-        next(gen)
 
 if __name__ == "__main__":
     file_name = 'datafile1.txt'
