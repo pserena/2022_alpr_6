@@ -9,36 +9,15 @@ fake = Faker('en_US')
 fake.add_provider(VehicleProvider)
 Faker.seed(0)
 
+sample = (('LKY1360', 2), ('HHF6697', 5), ('GVP9164',8), ('LBX9051',10), ('06062', 10),
+        ('LBV6157', 10), ('LVH6056', 10), ('ZPV5837', 10), ('ZDE1985', 10))
+
 def append_original_data(f):
     with open(file_name, 'a') as f:
-        for i in range(10):
-            if i == 0:
-                plate = "LKY1360"
-                rnum = 2
-            elif i == 1:
-                plate = "HHF6697"
-                rnum = 5
-            elif i == 2:
-                plate = "GVP9164"
-                rnum = 8
-            elif i == 3:
-                plate = "LBX9051"
-                rnum = 10
-            elif i == 4:
-                plate = "06062"
-                rnum = 10
-            elif i == 5:
-                plate = "LBV6157"
-                rnum = 10
-            elif i == 6:
-                plate = "LVH6056"
-                rnum = 10
-            elif i == 7:
-                plate = "ZPV5837"
-                rnum = 10
-            elif i == 8:
-                plate = "ZDE1985"
-                rnum = 10
+        for i in range(50):
+            if i < len(sample):
+                plate = sample[i][0]
+                rnum = sample[i][1]
             else:
                 plate = fake.license_plate().replace(" ", "")
                 plate = plate.replace("-", "")
@@ -79,6 +58,12 @@ def append_new_data(f):
     for license_plate in gen:
         plate = license_plate.replace(" ", "")
         plate = plate.replace("-", "")
+
+        if plate in sample:
+            # skip samples - unique plate number
+            next(gen)
+            continue
+
         rnum = fake.pyint(1, 100)
         output = plate+"\n"
 
