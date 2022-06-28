@@ -8,6 +8,11 @@
 #include <db.h> 
 #include <unordered_set>
 #include <memory>
+#include <chrono>
+
+#include <stdio.h>
+#include <thread>
+
 
 using namespace std;
 
@@ -68,17 +73,21 @@ int main()
     while (TRUE)
     {
         int Total;
-        int nfsd = TcpListenPort->ListenFd;
+        int nfsd = static_cast<int>(TcpListenPort->ListenFd);
         FD_ZERO(&ReadSet);
         FD_ZERO(&WriteSet);
         FD_SET(TcpListenPort->ListenFd, &ReadSet);
         for (auto& connected_fd : connected_ports) {
             FD_SET(connected_fd->ConnectedFd, &ReadSet);
-            nfsd = max(nfsd, connected_fd->ConnectedFd);
+            nfsd = max(nfsd, static_cast<int>(connected_fd->ConnectedFd));
         }
-        printf("nfsd : %d\n", nfsd);
-        //if (Total = select(0, &ReadSet, &WriteSet, NULL, NULL) == SOCKET_ERROR)
+
         printf("Trying select\n");
+        timeval timeout;
+        timeout.tv_sec = 10;
+        timeout.tv_usec = 0;
+        //if (Total = select(nfsd + 1, &ReadSet, NULL, NULL, &timeout) == SOCKET_ERROR)
+        /* No use timeout */
         if (Total = select(nfsd + 1, &ReadSet, NULL, NULL, NULL) == SOCKET_ERROR)
         {
             printf("select() returned with error %d\n", WSAGetLastError());
@@ -123,7 +132,7 @@ int main()
                         continue;
                     }
                     printf("Plate is : %s\n", PlateString);
-
+                    auto start_time = std::chrono::milliseconds(GetTickCount64());
                     /* Zero out the DBTs before using them. */
                     memset(&key, 0, sizeof(DBT));
                     memset(&data, 0, sizeof(DBT));
@@ -142,6 +151,8 @@ int main()
                             printf("WriteDataTcp %lld\n", result);
                         printf("sent ->%s\n", (char*)data.data);
                     }
+                    auto end_time = std::chrono::milliseconds(GetTickCount64());
+                    cout << "DB search time :" << (end_time - start_time).count() << endl;
                 }
                
             //}
