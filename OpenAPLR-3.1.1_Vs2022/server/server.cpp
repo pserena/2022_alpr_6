@@ -16,6 +16,37 @@
 
 using namespace std;
 
+bool doPartitionSearch(DB* dbp, const string& plate, char* out, size_t out_len) {
+    if (plate.size() > 7)
+        return false;
+    DBT key;
+    DBT data;
+    memset(&key, 0, sizeof(DBT));
+    memset(&data, 0, sizeof(DBT));
+
+    data.data = out;
+    data.ulen = out_len;
+    data.flags = DB_DBT_USERMEM;
+    key.data = (void *)plate.c_str();
+    key.size = plate.length() + 1;
+    if (dbp->get(dbp, NULL, &key, &data, 0) != DB_NOTFOUND)
+            return true;
+    for (char c = '0'; c <= '9'; c++) {
+        if (doPartitionSearch(dbp, plate + c, out, out_len))
+            return true;
+    }
+    for (char c = 'A'; c <= 'Z'; c++) {
+        if (doPartitionSearch(dbp, plate + c, out, out_len))
+            return true;
+    }
+     return false;
+}
+
+bool partialMatch(DB* dbp, char* plate, char* out, size_t out_len) {
+    /* Zero out the DBTs before using them. */
+    return doPartitionSearch(dbp, string(plate), out, out_len);
+}
+
 int main()
 {
     TTcpListenPort* TcpListenPort;
@@ -27,7 +58,6 @@ int main()
     unsigned short PlateStringLength;
     char PlateString[1024];
     char DBRecord[2048];
-    DBT key, data;
     DB* dbp; /* DB structure handle */
     u_int32_t flags; /* database open flags */
     int ret; /* function return value */
@@ -70,6 +100,8 @@ int main()
     //////////
     FD_SET WriteSet;
     FD_SET ReadSet;
+
+    long long max_search_time = 0;
     while (TRUE)
     {
         int Total;
@@ -133,28 +165,39 @@ int main()
                     }
                     printf("Plate is : %s\n", PlateString);
                     auto start_time = std::chrono::milliseconds(GetTickCount64());
-                    /* Zero out the DBTs before using them. */
-                    memset(&key, 0, sizeof(DBT));
-                    memset(&data, 0, sizeof(DBT));
-                    key.data = PlateString;
-                    key.size = (u_int32_t)(strlen(PlateString) + 1);
-                    data.data = DBRecord;
-                    data.ulen = sizeof(DBRecord);
-                    data.flags = DB_DBT_USERMEM;
-                    if (dbp->get(dbp, NULL, &key, &data, 0) != DB_NOTFOUND)
+                    if (partialMatch(dbp, PlateString, DBRecord, sizeof(DBRecord)))
                     {
-                        int sendlength = (int)(strlen((char*)data.data) + 1);
+                        int sendlength = (int)(strlen((char*)DBRecord) + 1);
                         short SendMsgHdr = ntohs(sendlength);
                         if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendMsgHdr))
                             printf("WriteDataTcp %lld\n", result);
-                        if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)data.data, sendlength)) != sendlength)
+                        if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)DBRecord, sendlength)) != sendlength)
                             printf("WriteDataTcp %lld\n", result);
-                        printf("sent ->%s\n", (char*)data.data);
+                        printf("sent ->%s\n", (char*)DBRecord);
                     }
-                    auto end_time = std::chrono::milliseconds(GetTickCount64());
-                    cout << "DB search time :" << (end_time - start_time).count() << endl;
+#if 0
+                    else {
+                        key.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
+                        key.dlen = 4U;
+                        key.doff = 0;
+                        if (dbp->get(dbp, NULL, &key, &data, 0) != DB_NOTFOUND) {
+                            printf("----------------- FIND Partial!!!\n");
+                            int sendlength = (int)(strlen((char*)data.data) + 1);
+                            short SendMsgHdr = ntohs(sendlength);
+                            if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendMsgHdr))
+                                printf("WriteDataTcp %lld\n", result);
+                            if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)data.data, sendlength)) != sendlength)
+                                printf("WriteDataTcp %lld\n", result);
+                            printf("sent ->%s\n", (char*)data.data);
+                        }
+                    }
+#endif
+                    //Sleep(10);
+                    auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
+                    
+                    max_search_time = max(max_search_time, search_time);
+                    cout << ">>>>>>>>>>>> DB search time :" << search_time << " (max : " << max_search_time << ")" << endl;
                 }
-               
             //}
 
         }
