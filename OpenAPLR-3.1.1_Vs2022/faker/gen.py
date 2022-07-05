@@ -58,17 +58,13 @@ def append_new_data(f):
     num = (num * 1000 * 1000)
     # num = (num * 10)
 
-    gen = (fake.unique.license_plate() for i in range(num))
+    gen = (fake.license_plate() for i in range(num))
 
     i = 1
     for i in range(1, num+1):
         license_plate = next(gen)
         plate = license_plate.replace(" ", "")
         plate = plate.replace("-", "")
-
-        if plate in sample:
-            # skip samples - unique plate number
-            continue
 
         rnum = fake.pyint(1, 100)
         output = plate+"\n"
