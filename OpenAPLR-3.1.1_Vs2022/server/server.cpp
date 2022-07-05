@@ -12,11 +12,100 @@
 
 #include <stdio.h>
 #include <thread>
+#include <winhttp.h>
+
+#pragma comment(lib, "winhttp.lib")
 
 
 using namespace std;
 
-bool doPartitionSearch(DB* dbp, const string& plate, char* out, size_t out_len) {
+/* This is sample code for HTTP to communicate with Solr DB */
+void httpTest() {
+    DWORD dwSize = 0;
+    DWORD dwDownloaded = 0;
+    LPSTR pszOutBuffer;
+    BOOL  bResults = FALSE;
+    HINTERNET  hSession = NULL,
+        hConnect = NULL,
+        hRequest = NULL;
+
+    // Use WinHttpOpen to obtain a session handle.
+    hSession = WinHttpOpen(L"WinHTTP Example/1.0",
+        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WINHTTP_NO_PROXY_NAME,
+        WINHTTP_NO_PROXY_BYPASS, 0);
+
+    // Specify an HTTP server.
+    if (hSession)
+        hConnect = WinHttpConnect(hSession, L"www.microsoft.com",
+            INTERNET_DEFAULT_HTTPS_PORT, 0);
+
+    // Create an HTTP request handle.
+    if (hConnect)
+        hRequest = WinHttpOpenRequest(hConnect, L"GET", NULL,
+            NULL, WINHTTP_NO_REFERER,
+            WINHTTP_DEFAULT_ACCEPT_TYPES,
+            WINHTTP_FLAG_SECURE);
+
+    // Send a request.
+    if (hRequest)
+        bResults = WinHttpSendRequest(hRequest,
+            WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+            WINHTTP_NO_REQUEST_DATA, 0,
+            0, 0);
+
+
+    // End the request.
+    if (bResults)
+        bResults = WinHttpReceiveResponse(hRequest, NULL);
+
+    // Keep checking for data until there is nothing left.
+    if (bResults)
+    {
+        do
+        {
+            // Check for available data.
+            dwSize = 0;
+            if (!WinHttpQueryDataAvailable(hRequest, &dwSize))
+                printf("Error %u in WinHttpQueryDataAvailable.\n",
+                    GetLastError());
+
+            // Allocate space for the buffer.
+            pszOutBuffer = new char[dwSize + 1];
+            if (!pszOutBuffer)
+            {
+                printf("Out of memory\n");
+                dwSize = 0;
+            }
+            else
+            {
+                // Read the data.
+                ZeroMemory(pszOutBuffer, dwSize + 1);
+
+                if (!WinHttpReadData(hRequest, (LPVOID)pszOutBuffer,
+                    dwSize, &dwDownloaded))
+                    printf("Error %u in WinHttpReadData.\n", GetLastError());
+                else
+                    printf("%s", pszOutBuffer);
+
+                // Free the memory allocated to the buffer.
+                delete[] pszOutBuffer;
+            }
+        } while (dwSize > 0);
+    }
+
+
+    // Report any errors.
+    if (!bResults)
+        printf("Error %d has occurred.\n", GetLastError());
+
+    // Close any open handles.
+    if (hRequest) WinHttpCloseHandle(hRequest);
+    if (hConnect) WinHttpCloseHandle(hConnect);
+    if (hSession) WinHttpCloseHandle(hSession);
+}
+
+bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_len) {
     if (plate.size() > 7)
         return false;
     DBT key;
@@ -27,8 +116,8 @@ bool doPartitionSearch(DB* dbp, const string& plate, char* out, size_t out_len) 
     data.data = out;
     data.ulen = out_len;
     data.flags = DB_DBT_USERMEM;
-    key.data = (void *)plate.c_str();
-    key.size = plate.length() + 1;
+    key.data = (void *)plate.c_str(); 
+    key.size = static_cast<u_int32_t>(plate.length()) + 1U;
     if (dbp->get(dbp, NULL, &key, &data, 0) != DB_NOTFOUND)
             return true;
     for (char c = '0'; c <= '9'; c++) {
@@ -42,7 +131,7 @@ bool doPartitionSearch(DB* dbp, const string& plate, char* out, size_t out_len) 
      return false;
 }
 
-bool partialMatch(DB* dbp, char* plate, char* out, size_t out_len) {
+bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
     /* Zero out the DBTs before using them. */
     return doPartitionSearch(dbp, string(plate), out, out_len);
 }
@@ -62,7 +151,8 @@ int main()
     u_int32_t flags; /* database open flags */
     int ret; /* function return value */
     ssize_t result;
-
+    /* TODO : Delete */
+    //httpTest();
     /* Initialize the structure. This
      * database is not opened in an environment,
      * so the environment pointer is NULL. */
