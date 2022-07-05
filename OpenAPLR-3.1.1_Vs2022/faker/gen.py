@@ -12,6 +12,11 @@ Faker.seed(0)
 sample = (('LKY1360', 2), ('HHF6697', 5), ('GVP9164',8), ('LBX9051',10), ('06062', 10),
         ('LBV6157', 10), ('LVH6056', 10), ('ZPV5837', 10), ('ZDE1985', 10))
 
+def preprocess_address():
+    addr = fake.address().split('\n')
+    _out = '"' + addr[0] + '"\n' + '"' + addr[1] + '"'
+    return ''.join(_out)
+
 def append_original_data(f):
     with open(file_name, 'a') as f:
         for i in range(50):
@@ -39,7 +44,7 @@ def append_original_data(f):
             # output+=fake.date_of_birth().strftime("%m/%d/%Y")+"\n"
             output += fake.date_between_dates(date_start=datetime(
                 1932, 1, 1), date_end=datetime(2004, 1, 1)).strftime("%m/%d/%Y")+"\n"
-            output += fake.address()+"\n"
+            output += preprocess_address()+"\n"
             output += fake.vehicle_year()+"\n"
             output += fake.vehicle_make()+"\n"
             output += fake.vehicle_model()+"\n"
@@ -49,8 +54,9 @@ def append_original_data(f):
 
 def append_new_data(f):
     # 25,000,000 data
-    num = 25
+    num = 27
     num = (num * 1000 * 1000)
+    # num = (num * 10)
 
     gen = (fake.unique.license_plate() for i in range(num))
 
@@ -83,7 +89,7 @@ def append_new_data(f):
         # output+=fake.date_of_birth().strftime("%m/%d/%Y")+"\n"
         output += fake.date_between_dates(date_start=datetime(
             1932, 1, 1), date_end=datetime(2004, 1, 1)).strftime("%m/%d/%Y")+"\n"
-        output += fake.address()+"\n"
+        output += preprocess_address()+"\n"
         output += fake.vehicle_year()+"\n"
         output += fake.vehicle_make()+"\n"
         output += fake.vehicle_model()+"\n"
