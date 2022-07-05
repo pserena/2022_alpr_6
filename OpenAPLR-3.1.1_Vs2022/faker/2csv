@@ -1,0 +1,1 @@
+tr $ '\n' < datafile_25000.txt | paste -d, - - - - - - - - - - - > datafile_25000.csv
