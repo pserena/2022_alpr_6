@@ -24,8 +24,9 @@ def append_original_data(f):
                 plate = sample[i][0]
                 rnum = sample[i][1]
             else:
-                plate = fake.license_plate().replace(" ", "")
-                plate = plate.replace("-", "")
+                # plate = fake.license_plate().replace(" ", "")
+                # plate = plate.replace("-", "")
+                plate=fake.bothify('???####',letters='ABCDEFGHJKLMNPRSTVWXYZ')
                 rnum = fake.pyint(1, 100)
             output = plate+"\n"
             if rnum < 3:
@@ -41,9 +42,9 @@ def append_original_data(f):
             output += fake.date_between_dates(date_start=datetime(
                 2022, 1, 1), date_end=datetime(2024, 5, 1)).strftime("%m/%d/%Y")+"\n"
             output += fake.name()+"\n"
-            # output+=fake.date_of_birth().strftime("%m/%d/%Y")+"\n"
-            output += fake.date_between_dates(date_start=datetime(
-                1932, 1, 1), date_end=datetime(2004, 1, 1)).strftime("%m/%d/%Y")+"\n"
+            output+=fake.date_of_birth().strftime("%m/%d/%Y")+"\n"
+            output+=fake.date_of_birth().strftime("%m/%d/%Y")+"\n"
+            #output += fake.date_between_dates(date_start=datetime(1932, 1, 1), date_end=datetime(2004, 1, 1)).strftime("%m/%d/%Y")+"\n"
             output += preprocess_address()+"\n"
             output += fake.vehicle_year()+"\n"
             output += fake.vehicle_make()+"\n"
@@ -54,7 +55,7 @@ def append_original_data(f):
 
 def append_new_data(f):
     # 25,000,000 data
-    num = 27
+    num = 25
     num = (num * 1000 * 1000)
     # num = (num * 10)
 
