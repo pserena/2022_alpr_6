@@ -20,7 +20,7 @@
 using namespace std;
 
 /* This is sample code for HTTP to communicate with Solr DB */
-void httpTest() {
+void getVehicleInfo(const wstring& plate) {
     DWORD dwSize = 0;
     DWORD dwDownloaded = 0;
     LPSTR pszOutBuffer;
@@ -28,7 +28,7 @@ void httpTest() {
     HINTERNET  hSession = NULL,
         hConnect = NULL,
         hRequest = NULL;
-
+//http://localhost:8983/solr/localDocs/select?q=487YNB:IBZ801
     // Use WinHttpOpen to obtain a session handle.
     hSession = WinHttpOpen(L"WinHTTP Example/1.0",
         WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
@@ -37,15 +37,16 @@ void httpTest() {
 
     // Specify an HTTP server.
     if (hSession)
-        hConnect = WinHttpConnect(hSession, L"www.microsoft.com",
-            INTERNET_DEFAULT_HTTPS_PORT, 0);
+        hConnect = WinHttpConnect(hSession, L"127.0.0.1",
+            8983, 0);
+    wstring url = L"/solr/alpr/select?q=plate_number:" + plate;
 
     // Create an HTTP request handle.
     if (hConnect)
-        hRequest = WinHttpOpenRequest(hConnect, L"GET", NULL,
+        hRequest = WinHttpOpenRequest(hConnect, L"GET", url.c_str(),
             NULL, WINHTTP_NO_REFERER,
             WINHTTP_DEFAULT_ACCEPT_TYPES,
-            WINHTTP_FLAG_SECURE);
+            0);
 
     // Send a request.
     if (hRequest)
@@ -152,7 +153,7 @@ int main()
     int ret; /* function return value */
     ssize_t result;
     /* TODO : Delete */
-    //httpTest();
+    getVehicleInfo(L"IBZ801");
     /* Initialize the structure. This
      * database is not opened in an environment,
      * so the environment pointer is NULL. */
