@@ -1,0 +1,9 @@
+
+# split file into two. 
+# head: first 5 liens
+# tail: after 5 lines
+filename="a"
+head -n 5 a  > a.head.txt
+tail -n +6 a > a.tail.txt
+
+sed '1~10,2~10 s/^\(.\+\)/\"\1\"/g' < a.tail.txt > a.tail.final.txt

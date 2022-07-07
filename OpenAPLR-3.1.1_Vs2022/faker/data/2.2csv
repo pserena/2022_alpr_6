@@ -1,0 +1,17 @@
+if [ $# -ne 1 ]; then
+    echo "Missing FileName"
+    exit 1
+else
+    filename="$1"
+fi
+
+new_filename=${filename/.txt/}
+
+# Split Files
+tr $ '\n' < ${filename} | paste -d, - - - - - - - - - - - | split --numeric-suffixes=1 --additional-suffix=".csv" -d -l 2500000
+
+# REFERENCE
+# split --numeric-suffixes=1 --additional-suffix=".csv" -l 150 datafile.csv zz
+
+# Without Split
+# tr $ '\n' < ${filename} | paste -d, - - - - - - - - - - - >> ${new_filename}
