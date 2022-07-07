@@ -1,0 +1,10 @@
+cat datafile_title.csv x01.csv > out/datafile_25million_01.csv
+cat datafile_title.csv x02.csv > out/datafile_25million_02.csv
+cat datafile_title.csv x03.csv > out/datafile_25million_03.csv
+cat datafile_title.csv x04.csv > out/datafile_25million_04.csv
+cat datafile_title.csv x05.csv > out/datafile_25million_05.csv
+cat datafile_title.csv x06.csv > out/datafile_25million_06.csv
+cat datafile_title.csv x07.csv > out/datafile_25million_07.csv
+cat datafile_title.csv x08.csv > out/datafile_25million_08.csv
+cat datafile_title.csv x09.csv > out/datafile_25million_09.csv
+cat datafile_title.csv x10.csv > out/datafile_25million_10.csv
