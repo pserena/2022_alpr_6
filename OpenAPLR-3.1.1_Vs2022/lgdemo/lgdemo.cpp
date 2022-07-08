@@ -11,11 +11,24 @@
 #include "motiondetector.h"
 #include "alpr.h"
 #include "DeviceEnumerator.h"
+#include <vector>
+
 
 
 using namespace alpr;
 using namespace std;
 using namespace cv;
+
+static int total_cnt = 0;
+static double total_sum = 0;
+static double read_sum = 0;
+
+static double max_latency = 0;
+static double max_read_latency = 0;
+
+timespec startTime;
+timespec midTime;
+
 
 
 enum class Mode { mNone, mLogin, mLogout, mPlayback_Video, mImage_File, mTest_Connection };
@@ -30,7 +43,7 @@ unsigned int BytesInResponseBuffer = 0;
 ssize_t BytesNeeded = sizeof(RespHdrNumBytes);
 
 
-bool measureProcessingTime = false;
+bool measureProcessingTime = true;
 std::string templatePattern;
 MotionDetector motiondetector;
 bool do_motiondetection = false;
@@ -53,7 +66,7 @@ static VideoResolution GetVideoResolution(void);
 static Mode GetVideoMode(void);
 static int GetVideoDevice(void);
 static bool GetFileName(Mode mode, char filename[MAX_PATH]);
-static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson);
+static bool detectandshow(Alpr* alpr, cv::Mat& frame, std::string region, bool writeJson);
 static void InitCounter();
 static double CLOCK();
 static bool getconchar(KEY_EVENT_RECORD& krec);
@@ -171,11 +184,14 @@ int main()
             Mat frame;
             double start = CLOCK();
             // Capture frame-by-frame
+            getTimeMonotonic(&startTime);
             if (mode == Mode::mImage_File)
             {
                 frame = imread(filename);
             }
             else cap >> frame;
+            getTimeMonotonic(&midTime);
+
 
             // 
             // If the frame is empty, break immediately
@@ -186,7 +202,7 @@ int main()
             if (videosavemode != VideoSaveMode::vSaveWithNoALPR)
             {
                 detectandshow(&alpr, frame, "", false);
-                GetResponses();
+                //GetResponses();
 
                 cv::putText(frame, text,
                     cv::Point(10, frame.rows - 10), //top-left position
@@ -210,6 +226,9 @@ int main()
             double dur = CLOCK() - start;
             sprintf_s(text, "avg time per frame %f ms. fps %f. frameno = %d", avgdur(dur), avgfps(), frameno++);
         }
+        cout << "Average latency : " << (total_sum / total_cnt) << " " << " max latency : " << max_latency << endl;
+        cout << "Read    latency : " << (read_sum / total_cnt) << " " << " max latency : " << max_read_latency << endl;
+
 
         // When everything done, release the video capture and write object
         cap.release();
@@ -228,11 +247,11 @@ int main()
 /***********************************************************************************/
 /* detectandshow                                                                   */
 /***********************************************************************************/
-static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson)
+static bool detectandshow(Alpr* alpr, cv::Mat& frame, std::string region, bool writeJson)
 {
 
-    timespec startTime;
-    getTimeMonotonic(&startTime);
+    //timespec startTime;
+    //getTimeMonotonic(&startTime);
     unsigned short SendPlateStringLength;
     ssize_t result;
 
@@ -248,10 +267,16 @@ static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool wr
 
     timespec endTime;
     getTimeMonotonic(&endTime);
+    double midProcessingTime = diffclock(startTime, midTime);
     double totalProcessingTime = diffclock(startTime, endTime);
+    total_cnt++;
+    total_sum += totalProcessingTime;
+    read_sum += midProcessingTime;
+    max_latency = max(max_latency, totalProcessingTime);
+    max_read_latency = max(max_read_latency, midProcessingTime);
     
     if (measureProcessingTime)
-        std::cout << "Total Time to process image: " << totalProcessingTime << "ms." << std::endl;
+        std::cout << "Total Time to process image: " << totalProcessingTime << "ms. (" << midProcessingTime << "ms)" << std::endl;
 
 
     if (writeJson)
@@ -274,7 +299,7 @@ static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool wr
                 cv::Point(rect.x, rect.y-5), //top-left position
                 FONT_HERSHEY_COMPLEX_SMALL, 1,
                 Scalar(0, 255, 0), 0, LINE_AA, false);
-            if (TcpConnectedPort)
+            if (TcpConnectedPort && false)
             {
                 bool found = false;
                 for (int x = 0; x < NUMBEROFPREVIOUSPLATES; x++)

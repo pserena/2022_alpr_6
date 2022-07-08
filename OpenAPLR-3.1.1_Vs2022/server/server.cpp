@@ -141,9 +141,12 @@ bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
 void doDBTest() {
 #define COUNT 10000;
     int cnt = COUNT;
-    srand(2022);
-  
+    static int seed = 2022;
+    
+    srand(seed++);
     auto start_time = std::chrono::milliseconds(GetTickCount64());
+  
+    cout << "DB search start" << endl;
   
     while (cnt--) {
         string plate;
@@ -216,7 +219,11 @@ int main()
     int ret; /* function return value */
     ssize_t result;
     /* TODO : Test Code */
-    doDBTest();
+    //doDBTest();
+    //thread first(&doDBTest);
+    //thread second(&doDBTest);
+    //first.join();
+    //second.join();
     /* Initialize the structure. This
      * database is not opened in an environment,
      * so the environment pointer is NULL. */
