@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <memory>
 #include <chrono>
+#include <string>
 
 #include <stdio.h>
 #include <thread>
@@ -39,7 +40,7 @@ void getVehicleInfo(const wstring& plate) {
     if (hSession)
         hConnect = WinHttpConnect(hSession, L"127.0.0.1",
             8983, 0);
-    wstring url = L"/solr/alpr/select?q=plate_number:" + plate;
+    wstring url = L"/solr/swarchitect_alpr/select?q=plate_number:" + plate;
 
     // Create an HTTP request handle.
     if (hConnect)
@@ -86,9 +87,9 @@ void getVehicleInfo(const wstring& plate) {
                 if (!WinHttpReadData(hRequest, (LPVOID)pszOutBuffer,
                     dwSize, &dwDownloaded))
                     printf("Error %u in WinHttpReadData.\n", GetLastError());
-                else
-                    printf("%s", pszOutBuffer);
-
+                else {
+                    //printf("%s", pszOutBuffer);
+                }
                 // Free the memory allocated to the buffer.
                 delete[] pszOutBuffer;
             }
@@ -137,6 +138,68 @@ bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
     return doPartitionSearch(dbp, string(plate), out, out_len);
 }
 
+void doDBTest() {
+#define COUNT 10000;
+    int cnt = COUNT;
+    srand(2022);
+  
+    auto start_time = std::chrono::milliseconds(GetTickCount64());
+  
+    while (cnt--) {
+        string plate;
+        for (int i = 0; i < 3; i++) {
+            int j = rand() % 26;
+            plate += ('A' + j);
+        }
+        plate += to_string(rand() % 10000);
+        //plate += "~2";
+        //cout << plate << endl;
+
+
+        getVehicleInfo(wstring(plate.begin(), plate.end()));
+    }
+    auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
+    cout << "search_time for exact : " << search_time << endl;
+    
+    cnt = COUNT;
+    start_time = std::chrono::milliseconds(GetTickCount64());
+    while (cnt--) {
+        string plate;
+        for (int i = 0; i < 3; i++) {
+            int j = rand() % 26;
+            plate += ('A' + j);
+        }
+        plate += to_string(rand() % 10000);
+        plate += "~1";
+        //cout << plate << endl;
+
+
+        getVehicleInfo(wstring(plate.begin(), plate.end()));
+    }
+    search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
+
+    cout << "search_time for ~1 : " << search_time << endl;
+
+    cnt = COUNT;
+    start_time = std::chrono::milliseconds(GetTickCount64());
+    while (cnt--) {
+        string plate;
+        for (int i = 0; i < 3; i++) {
+            int j = rand() % 26;
+            plate += ('A' + j);
+        }
+        plate += to_string(rand() % 10000);
+        plate += "~2";
+        //cout << plate << endl;
+
+
+        getVehicleInfo(wstring(plate.begin(), plate.end()));
+    }
+    search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
+
+    cout << "search_time for ~2 : " << search_time << endl;
+}
+
 int main()
 {
     TTcpListenPort* TcpListenPort;
@@ -152,8 +215,8 @@ int main()
     u_int32_t flags; /* database open flags */
     int ret; /* function return value */
     ssize_t result;
-    /* TODO : Delete */
-    getVehicleInfo(L"IBZ801");
+    /* TODO : Test Code */
+    doDBTest();
     /* Initialize the structure. This
      * database is not opened in an environment,
      * so the environment pointer is NULL. */
