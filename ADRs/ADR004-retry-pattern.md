@@ -9,8 +9,7 @@ We will use ‘retry’ pattern to resolve the communication issue automatically
 ## Rationale
 We have considered using 'retry' tactic that tries repeated reconnection attempts when network failure occurs. 
 But, if we use this tactic, a laptop application has to wait and cannot do anything until a response to whether the connection is re-established successfully 
-has been delivered. Therefore, for a better user experience, we choose 'circuit breaker' pattern. By delegating the reconnection attempts to the 'circuit breaker', 
-the application can do other work.
+has been delivered. Therefore, for a better user experience, we choose 'retry' pattern. 
 	
 ## Status
 Proposed
