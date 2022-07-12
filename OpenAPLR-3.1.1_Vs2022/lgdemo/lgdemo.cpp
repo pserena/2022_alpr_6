@@ -5,7 +5,9 @@
 #include <map>
 #include <iostream>
 #include <stdlib.h>
-#include <tchar.h> 
+#include <tchar.h>
+#include <fstream>
+
 #include "opencv2/opencv.hpp"
 #include "support/timing.h"
 #include "motiondetector.h"
@@ -42,18 +44,26 @@ double _avgdur = 0;
 double _fpsstart = 0;
 double _avgfps = 0;
 double _fps1sec = 0;
+double totRec = 0;
+double maxRec = 0;
 TTcpConnectedPort* TcpConnectedPort;
 
 #define NUMBEROFPREVIOUSPLATES 10
 char LastPlates[NUMBEROFPREVIOUSPLATES][64]={"","","","",""};
 unsigned int CurrentPlate = 0;
 
+string file = "output.txt";
+ofstream write_file(file.data());
+
+string perf_file = "perf.txt";
+ofstream perf_write_file(perf_file.data());
+
 static VideoSaveMode GetVideoSaveMode(void);
 static VideoResolution GetVideoResolution(void);
 static Mode GetVideoMode(void);
 static int GetVideoDevice(void);
 static bool GetFileName(Mode mode, char filename[MAX_PATH]);
-static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson);
+static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson, double *recTime);
 static void InitCounter();
 static double CLOCK();
 static bool getconchar(KEY_EVENT_RECORD& krec);
@@ -81,7 +91,6 @@ int main()
 
     std::string county;
 
-
     if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL)
     {
         std::cout << "Connection Failed" << std::endl;
@@ -103,7 +112,8 @@ int main()
 
         if (mode == Mode::mLogin) {
             continue;
-        } else if (mode == Mode::mLogout) {
+        }
+        else if (mode == Mode::mLogout) {
             continue;
         }
 
@@ -165,11 +175,11 @@ int main()
             }
         }
 
-
         while (1) {
 
             Mat frame;
             double start = CLOCK();
+            double recTime;
             // Capture frame-by-frame
             if (mode == Mode::mImage_File)
             {
@@ -185,7 +195,7 @@ int main()
             if (frameno == 0) motiondetector.ResetMotionDetection(&frame);
             if (videosavemode != VideoSaveMode::vSaveWithNoALPR)
             {
-                detectandshow(&alpr, frame, "", false);
+                detectandshow(&alpr, frame, "", false, &recTime);
                 GetResponses();
 
                 cv::putText(frame, text,
@@ -200,7 +210,7 @@ int main()
                 outputVideo.write(frame);
             }
 
-            // Display the resulting frame
+            // Display the resulting frame    
             imshow("Frame", frame);
 
             // Press  ESC on keyboard to  exit
@@ -209,6 +219,12 @@ int main()
                 break;
             double dur = CLOCK() - start;
             sprintf_s(text, "avg time per frame %f ms. fps %f. frameno = %d", avgdur(dur), avgfps(), frameno++);
+
+            totRec += recTime;
+            if (recTime > maxRec)
+                maxRec = recTime;
+
+            perf_write_file << "fn:" << setw(8) << frameno << " cur:" << setw(8) << recTime << " avg:" << setw(8) << totRec / frameno << " max:" << setw(8) << maxRec << endl;
         }
 
         // When everything done, release the video capture and write object
@@ -217,8 +233,9 @@ int main()
 
         // Closes all the frames
         destroyAllWindows();
+        write_file.close();
+        perf_write_file.close();
     }
-
     
     return 0;
 }
@@ -228,7 +245,7 @@ int main()
 /***********************************************************************************/
 /* detectandshow                                                                   */
 /***********************************************************************************/
-static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson)
+static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson, double *processTime)
 {
 
     timespec startTime;
@@ -253,6 +270,8 @@ static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool wr
     if (measureProcessingTime)
         std::cout << "Total Time to process image: " << totalProcessingTime << "ms." << std::endl;
 
+    *processTime = totalProcessingTime;
+
 
     if (writeJson)
     {
@@ -274,6 +293,10 @@ static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool wr
                 cv::Point(rect.x, rect.y-5), //top-left position
                 FONT_HERSHEY_COMPLEX_SMALL, 1,
                 Scalar(0, 255, 0), 0, LINE_AA, false);
+
+            for (int k = 0; k < results.plates[i].topNPlates.size(); k++) {
+                write_file << "top" << k << setw(10) << results.plates[i].topNPlates[k].characters.c_str() << " " << results.plates[i].topNPlates[k].overall_confidence << endl;
+            }
             if (TcpConnectedPort)
             {
                 bool found = false;
@@ -295,6 +318,7 @@ static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool wr
                     if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)results.plates[i].bestPlate.characters.c_str(), SendPlateStringLength)) != SendPlateStringLength)
                         printf("WriteDataTcp %d\n", result);
                     printf("sent ->%s\n", results.plates[i].bestPlate.characters.c_str());
+                    write_file << setw(10) << results.plates[i].bestPlate.characters.c_str() << " " << results.plates[i].bestPlate.overall_confidence  << endl;
                 }
             }
             strcpy_s(LastPlates[CurrentPlate], results.plates[i].bestPlate.characters.c_str());
