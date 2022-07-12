@@ -2,6 +2,11 @@
 
 namespace client
 {
+	enum class Mode { mNone, mLogin, mLogout, mPlayback_Video, mImage_File, mTest_Connection };
+	enum class VideoResolution { rNone, r640X480, r1280X720 };
+	enum class VideoSaveMode { vNone, vNoSave, vSave, vSaveWithNoALPR };
+	enum class ResponseMode { ReadingHeader, ReadingMsg };
+
 	class MainController {
 	public:
 	private:
@@ -28,6 +33,11 @@ namespace client
 	};
 
 	class LoginManager {
+	public:
+	private:
+	};
+
+	class CommunicationManager {
 	public:
 	private:
 	};

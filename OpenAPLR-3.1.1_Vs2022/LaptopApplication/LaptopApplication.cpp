@@ -4,6 +4,8 @@
 #include <iostream>
 #include "LaptopModules.h"
 
+using namespace client;
+
 int main()
 {
     std::cout << "This is Laptop Application\n";
