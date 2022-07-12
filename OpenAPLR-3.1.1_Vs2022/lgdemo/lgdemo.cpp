@@ -26,8 +26,8 @@ enum class VideoSaveMode { vNone, vNoSave, vSave, vSaveWithNoALPR};
 enum class ResponseMode { ReadingHeader,ReadingMsg };
 
 ResponseMode GetResponseMode= ResponseMode::ReadingHeader;
-short RespHdrNumBytes;
-char ResponseBuffer[2048];
+size_t RespHdrNumBytes;
+char ResponseBuffer[8192];
 unsigned int BytesInResponseBuffer = 0;
 ssize_t BytesNeeded = sizeof(RespHdrNumBytes);
 
@@ -647,6 +647,7 @@ static void GetResponses(void)
              GetResponseMode = ResponseMode::ReadingMsg;
              BytesNeeded = RespHdrNumBytes;
              BytesInResponseBuffer = 0;
+             cout << "---Size : " << BytesNeeded << endl;
          }
          else if (GetResponseMode == ResponseMode::ReadingMsg)
          {

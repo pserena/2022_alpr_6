@@ -52,6 +52,16 @@ bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
     return doPartitionSearch(dbp, string(plate), out, out_len);
 }
 
+void sendResponse(TTcpConnectedPort* tcp_connected_port, string response) {
+    char buf[8192];
+    size_t SendMsgHdr = ntohs(response.length());
+    strcpy_s(buf, response.c_str());
+    cout << "--------- length : " << response.length() << "----------" << endl;
+    cout << response << endl;
+    WriteDataTcp(tcp_connected_port, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
+    WriteDataTcp(tcp_connected_port, (unsigned char*)buf, response.length());
+}
+
 int main()
 {
     TTcpListenPort* TcpListenPort;
@@ -168,14 +178,11 @@ int main()
 				}
 				printf("Plate is : %s\n", PlateString);
 				auto start_time = std::chrono::milliseconds(GetTickCount64());
-#if 0              
+#if 1              
+                function<void(string)> callback = bind(&sendResponse, connected_fd.get(), placeholders::_1);
                 /* TODO : Test Code for Solr DB */
-                rh.handle(PlateString, [](string s) {
-                    cout << "-------------------" << endl;
-                    cout << s << endl;
-                    cout << "Length : " << s.length() << endl;
-                });
-#endif
+                rh.handle(PlateString, move(callback));
+#else
 				if (partialMatch(dbp, PlateString, DBRecord, sizeof(DBRecord)))
 				{
 					int sendlength = (int)(strlen((char*)DBRecord) + 1);
@@ -186,7 +193,7 @@ int main()
 						printf("WriteDataTcp %lld\n", result);
 					printf("sent ->%s\n", (char*)DBRecord);
 				}
-
+#endif
 				//Sleep(10);
 				auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
 
