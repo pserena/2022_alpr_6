@@ -12,99 +12,12 @@
 
 #include <stdio.h>
 #include <thread>
-#include <winhttp.h>
 
-#pragma comment(lib, "winhttp.lib")
-
+#include "RequestHandler.h"
 
 using namespace std;
 
-/* This is sample code for HTTP to communicate with Solr DB */
-void getVehicleInfo(const wstring& plate) {
-    DWORD dwSize = 0;
-    DWORD dwDownloaded = 0;
-    LPSTR pszOutBuffer;
-    BOOL  bResults = FALSE;
-    HINTERNET  hSession = NULL,
-        hConnect = NULL,
-        hRequest = NULL;
-//http://localhost:8983/solr/localDocs/select?q=487YNB:IBZ801
-    // Use WinHttpOpen to obtain a session handle.
-    hSession = WinHttpOpen(L"WinHTTP Example/1.0",
-        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        WINHTTP_NO_PROXY_NAME,
-        WINHTTP_NO_PROXY_BYPASS, 0);
 
-    // Specify an HTTP server.
-    if (hSession)
-        hConnect = WinHttpConnect(hSession, L"127.0.0.1",
-            8983, 0);
-    wstring url = L"/solr/alpr/select?q=plate_number:" + plate;
-
-    // Create an HTTP request handle.
-    if (hConnect)
-        hRequest = WinHttpOpenRequest(hConnect, L"GET", url.c_str(),
-            NULL, WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES,
-            0);
-
-    // Send a request.
-    if (hRequest)
-        bResults = WinHttpSendRequest(hRequest,
-            WINHTTP_NO_ADDITIONAL_HEADERS, 0,
-            WINHTTP_NO_REQUEST_DATA, 0,
-            0, 0);
-
-
-    // End the request.
-    if (bResults)
-        bResults = WinHttpReceiveResponse(hRequest, NULL);
-
-    // Keep checking for data until there is nothing left.
-    if (bResults)
-    {
-        do
-        {
-            // Check for available data.
-            dwSize = 0;
-            if (!WinHttpQueryDataAvailable(hRequest, &dwSize))
-                printf("Error %u in WinHttpQueryDataAvailable.\n",
-                    GetLastError());
-
-            // Allocate space for the buffer.
-            pszOutBuffer = new char[dwSize + 1];
-            if (!pszOutBuffer)
-            {
-                printf("Out of memory\n");
-                dwSize = 0;
-            }
-            else
-            {
-                // Read the data.
-                ZeroMemory(pszOutBuffer, dwSize + 1);
-
-                if (!WinHttpReadData(hRequest, (LPVOID)pszOutBuffer,
-                    dwSize, &dwDownloaded))
-                    printf("Error %u in WinHttpReadData.\n", GetLastError());
-                else
-                    printf("%s", pszOutBuffer);
-
-                // Free the memory allocated to the buffer.
-                delete[] pszOutBuffer;
-            }
-        } while (dwSize > 0);
-    }
-
-
-    // Report any errors.
-    if (!bResults)
-        printf("Error %d has occurred.\n", GetLastError());
-
-    // Close any open handles.
-    if (hRequest) WinHttpCloseHandle(hRequest);
-    if (hConnect) WinHttpCloseHandle(hConnect);
-    if (hSession) WinHttpCloseHandle(hSession);
-}
 
 bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_len) {
     if (plate.size() > 7)
@@ -152,8 +65,8 @@ int main()
     u_int32_t flags; /* database open flags */
     int ret; /* function return value */
     ssize_t result;
-    /* TODO : Delete */
-    getVehicleInfo(L"IBZ801");
+
+
     /* Initialize the structure. This
      * database is not opened in an environment,
      * so the environment pointer is NULL. */
@@ -193,6 +106,7 @@ int main()
     FD_SET ReadSet;
 
     long long max_search_time = 0;
+    RequestHandler rh;
     while (TRUE)
     {
         int Total;
@@ -206,9 +120,7 @@ int main()
         }
 
         printf("Trying select\n");
-        timeval timeout;
-        timeout.tv_sec = 10;
-        timeout.tv_usec = 0;
+
         //if (Total = select(nfsd + 1, &ReadSet, NULL, NULL, &timeout) == SOCKET_ERROR)
         /* No use timeout */
         if (Total = select(nfsd + 1, &ReadSet, NULL, NULL, NULL) == SOCKET_ERROR)
@@ -231,66 +143,49 @@ int main()
             connected_ports.insert(shared_ptr<TTcpConnectedPort>(TcpConnectedPort));
             Total--;
         }
-        // FIXME : select return 0 when event occurs. But 0 means timeout. Need to figure out.
-        //if(Total != 0) { 
-            for (auto& connected_fd : connected_ports) {
-                if (FD_ISSET(connected_fd->ConnectedFd, &ReadSet)) {
-                    //Total--;
-                    if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateStringLength, sizeof(PlateStringLength)) != sizeof(PlateStringLength))
-                    {
-                        printf("ReadDataTcp 1 error - close socket\n");
-                        closesocket(connected_fd->ConnectedFd);
-                        connected_ports.erase(connected_fd);
-                        break;
-                    }
-                    PlateStringLength = ntohs(PlateStringLength);
-                    if (PlateStringLength > sizeof(PlateString))
-                    {
-                        printf("Plate string length  error\n");
-                        continue;
-                    }
-                    if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateString, PlateStringLength) != PlateStringLength)
-                    {
-                        printf("ReadDataTcp 2 error\n");
-                        continue;
-                    }
-                    printf("Plate is : %s\n", PlateString);
-                    auto start_time = std::chrono::milliseconds(GetTickCount64());
-                    if (partialMatch(dbp, PlateString, DBRecord, sizeof(DBRecord)))
-                    {
-                        int sendlength = (int)(strlen((char*)DBRecord) + 1);
-                        short SendMsgHdr = ntohs(sendlength);
-                        if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendMsgHdr))
-                            printf("WriteDataTcp %lld\n", result);
-                        if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)DBRecord, sendlength)) != sendlength)
-                            printf("WriteDataTcp %lld\n", result);
-                        printf("sent ->%s\n", (char*)DBRecord);
-                    }
-#if 0
-                    else {
-                        key.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
-                        key.dlen = 4U;
-                        key.doff = 0;
-                        if (dbp->get(dbp, NULL, &key, &data, 0) != DB_NOTFOUND) {
-                            printf("----------------- FIND Partial!!!\n");
-                            int sendlength = (int)(strlen((char*)data.data) + 1);
-                            short SendMsgHdr = ntohs(sendlength);
-                            if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendMsgHdr))
-                                printf("WriteDataTcp %lld\n", result);
-                            if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)data.data, sendlength)) != sendlength)
-                                printf("WriteDataTcp %lld\n", result);
-                            printf("sent ->%s\n", (char*)data.data);
-                        }
-                    }
-#endif
-                    //Sleep(10);
-                    auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
-                    
-                    max_search_time = max(max_search_time, search_time);
-                    cout << ">>>>>>>>>>>> DB search time :" << search_time << " (max : " << max_search_time << ")" << endl;
-                }
-            //}
 
+		for (auto& connected_fd : connected_ports) {
+			if (FD_ISSET(connected_fd->ConnectedFd, &ReadSet)) {
+				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateStringLength, sizeof(PlateStringLength)) != sizeof(PlateStringLength))
+				{
+					printf("ReadDataTcp 1 error - close socket\n");
+					closesocket(connected_fd->ConnectedFd);
+					connected_ports.erase(connected_fd);
+					break;
+				}
+				PlateStringLength = ntohs(PlateStringLength);
+				if (PlateStringLength > sizeof(PlateString))
+				{
+					printf("Plate string length  error\n");
+					continue;
+				}
+				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateString, PlateStringLength) != PlateStringLength)
+				{
+					printf("ReadDataTcp 2 error\n");
+					continue;
+				}
+				printf("Plate is : %s\n", PlateString);
+				auto start_time = std::chrono::milliseconds(GetTickCount64());
+                
+                /* TODO : change to this */
+                //rh.handle(PlateString);
+				if (partialMatch(dbp, PlateString, DBRecord, sizeof(DBRecord)))
+				{
+					int sendlength = (int)(strlen((char*)DBRecord) + 1);
+					short SendMsgHdr = ntohs(sendlength);
+					if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendMsgHdr))
+						printf("WriteDataTcp %lld\n", result);
+					if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)DBRecord, sendlength)) != sendlength)
+						printf("WriteDataTcp %lld\n", result);
+					printf("sent ->%s\n", (char*)DBRecord);
+				}
+
+				//Sleep(10);
+				auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
+
+				max_search_time = max(max_search_time, search_time);
+				cout << ">>>>>>>>>>>> DB search time :" << search_time << " (max : " << max_search_time << ")" << endl;
+			}
         }
 
     }
