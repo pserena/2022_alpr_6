@@ -34,6 +34,7 @@ bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_le
     key.size = static_cast<u_int32_t>(plate.length()) + 1U;
     if (dbp->get(dbp, NULL, &key, &data, 0) != DB_NOTFOUND)
             return true;
+#if 0
     for (char c = '0'; c <= '9'; c++) {
         if (doPartitionSearch(dbp, plate + c, out, out_len))
             return true;
@@ -42,6 +43,7 @@ bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_le
         if (doPartitionSearch(dbp, plate + c, out, out_len))
             return true;
     }
+#endif
      return false;
 }
 
@@ -166,9 +168,14 @@ int main()
 				}
 				printf("Plate is : %s\n", PlateString);
 				auto start_time = std::chrono::milliseconds(GetTickCount64());
-                
-                /* TODO : change to this */
-                //rh.handle(PlateString);
+#if 0              
+                /* TODO : Test Code for Solr DB */
+                rh.handle(PlateString, [](string s) {
+                    cout << "-------------------" << endl;
+                    cout << s << endl;
+                    cout << "Length : " << s.length() << endl;
+                });
+#endif
 				if (partialMatch(dbp, PlateString, DBRecord, sizeof(DBRecord)))
 				{
 					int sendlength = (int)(strlen((char*)DBRecord) + 1);
