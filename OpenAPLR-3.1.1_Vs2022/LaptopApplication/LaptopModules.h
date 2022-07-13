@@ -2,7 +2,6 @@
 
 #define WIN32_LEAN_AND_MEAN
 
-//#include <WinSock2.h>
 #include <windows.h>
 #include <opencv2/highgui.hpp>
 
@@ -81,6 +80,7 @@ namespace client
 
 		int networkConnect(void);
 		int networkConnectColse(void);
+		int retryNetworkConnect(void);
 		int sendCommunicationData(unsigned char* data);
 		int receiveCommunicationData(char* data);
 		int authenticate(string strID, string strPw);
@@ -94,7 +94,7 @@ namespace client
 
 		int linkCommMag(CommunicationManager* comMan);
 		int sendVehicleInfo(unsigned char* vehicleData);
-		int receiveCommunicationData(unsigned char* vehicleData);
+		int receiveCommunicationData(char* vehicleData);
 	private:
 		CommunicationManager* commMan;
 	};

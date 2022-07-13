@@ -15,13 +15,14 @@ int VehicleInfoManager::linkCommMag(CommunicationManager* linkCommMan) {
 }
 
 int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
+	printf("sendVehicleInfo ->%s\n", vehicleData);
 	commMan->sendCommunicationData(vehicleData);
 
 	return 0;
 }
 
-int VehicleInfoManager::receiveCommunicationData(unsigned char* vehicleData) {
-	commMan->sendCommunicationData(vehicleData);
+int VehicleInfoManager::receiveCommunicationData(char* vehicleData) {
+	commMan->receiveCommunicationData(vehicleData);
 
 	return 0;
 }

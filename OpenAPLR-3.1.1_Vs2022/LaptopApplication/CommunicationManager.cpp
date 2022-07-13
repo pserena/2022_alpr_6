@@ -2,12 +2,17 @@
 
 #include <iostream>
 #include "NetworkTCP.h"
+#include "json.hpp"
 
 TTcpConnectedPort* TcpConnectedPort;
-enum ResponseMode { ReadingHeader, ReadingMsg };
+//enum ResponseMode { ReadingHeader, ReadingMsg };
 
 using namespace client;
 client::ResponseMode GetResponseMode = client::ResponseMode::ReadingHeader;
+static void GetResponses(char* data);
+size_t RespHdrNumBytes;
+unsigned int BytesInResponseBuffer = 0;
+ssize_t BytesNeeded = sizeof(RespHdrNumBytes);
 
 CommunicationManager::CommunicationManager(void)
 {
@@ -31,6 +36,12 @@ int CommunicationManager::networkConnectColse(void) {
     return 0;
 }
 
+int CommunicationManager::retryNetworkConnect(void) {
+    //networkConnectColse();
+    networkConnect();
+    return 0;
+}
+
 int CommunicationManager::sendCommunicationData(unsigned char* data) {
     ssize_t result;
     unsigned short SendMsgHdr, SendPlateStringLength;
@@ -46,17 +57,20 @@ int CommunicationManager::sendCommunicationData(unsigned char* data) {
 
 int CommunicationManager::receiveCommunicationData(char* data)
 {
+    GetResponses(data);
+    return 0;
+}
+
+static void GetResponses(char* data)
+{
+    char* ResponseBuffer = data;
     ssize_t BytesRead;
     ssize_t BytesOnSocket = 0;
-    size_t RespHdrNumBytes;
-    unsigned int BytesInResponseBuffer = 0;
-    ssize_t BytesNeeded = sizeof(RespHdrNumBytes);
     while ((BytesOnSocket = BytesAvailableTcp(TcpConnectedPort)) > 0)
     {
-        if (BytesOnSocket < 0)
-            return (-1);
+        if (BytesOnSocket < 0) return;
         if (BytesOnSocket > BytesNeeded) BytesOnSocket = BytesNeeded;
-        BytesRead = ReadDataTcp(TcpConnectedPort, (unsigned char*)data[BytesInResponseBuffer], BytesOnSocket);
+        BytesRead = ReadDataTcp(TcpConnectedPort, (unsigned char*)&ResponseBuffer[BytesInResponseBuffer], BytesOnSocket);
         if (BytesRead <= 0)
         {
             printf("Read Response Error - Closing Socket\n");
@@ -68,16 +82,15 @@ int CommunicationManager::receiveCommunicationData(char* data)
         {
             if (GetResponseMode == ResponseMode::ReadingHeader)
             {
-                memcpy(&RespHdrNumBytes, data, sizeof(RespHdrNumBytes));
+                memcpy(&RespHdrNumBytes, ResponseBuffer, sizeof(RespHdrNumBytes));
                 RespHdrNumBytes = ntohs(RespHdrNumBytes);
                 GetResponseMode = ResponseMode::ReadingMsg;
                 BytesNeeded = RespHdrNumBytes;
                 BytesInResponseBuffer = 0;
-                cout << "---Size : " << BytesNeeded << endl;
             }
             else if (GetResponseMode == ResponseMode::ReadingMsg)
             {
-                printf("Response %s\n", data);
+                printf("Response %s\n", ResponseBuffer);
                 GetResponseMode = ResponseMode::ReadingHeader;
                 BytesInResponseBuffer = 0;
                 BytesNeeded = sizeof(RespHdrNumBytes);
@@ -89,7 +102,6 @@ int CommunicationManager::receiveCommunicationData(char* data)
         printf("Read Response Error - Closing Socket\n");
         CloseTcpConnectedPort(&TcpConnectedPort);
     }
-    return 0;
 }
 
 int CommunicationManager::authenticate(string strID, string strPw) {

@@ -217,6 +217,7 @@
   <ItemGroup>
     <ClInclude Include="..\common\NetworkTCP.h" />
     <ClInclude Include="..\OpenCVDeviceEnumerator\DeviceEnumerator.h" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="LaptopModules.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
