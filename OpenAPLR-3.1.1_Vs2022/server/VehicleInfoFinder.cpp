@@ -44,16 +44,31 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     if (hSession)
         hConnect = WinHttpConnect(hSession, L"127.0.0.1",
             8983, 0);
-    int fuzzy_search = 0;
+    int priority = 0;
     // below 300 bytes measn no found.
     output.clear();
 
     do {
-        output.clear();
-        wstring url = L"/solr/swarchitect_alpr/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end());
-        if (fuzzy_search != 0) {
-            url += L"~" + to_wstring(fuzzy_search);
+        wstring url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:";
+        switch (priority) {
+        case 0:
+            url += wstring(plate.begin(), plate.end());
+            break;
+        case 1:
+            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end()) + L"?";
+            break;
+        case 2:
+            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:?" + wstring(plate.begin(), plate.end());
+            break;
+        case 3:
+            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end()) + L"~1";
+            break;
+        case 4:
+        default:
+            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end()) + L"~2";
+            break;
         }
+        output.clear();
 
         // Create an HTTP request handle.
         if (hConnect)
@@ -112,7 +127,7 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
         found = json_output["response"]["numFound"];
         if ( found > 0)
             break;
-    } while (++fuzzy_search < 3);
+    } while (++priority < 5);
 
     // Report any errors.
     if (!bResults)
