@@ -19,11 +19,11 @@
 #include <stdio.h>
 #include <thread>
 
-#include "json.hpp"
+//#include "json.hpp"
 #include "RequestHandler.h"
 
 using namespace std;
-using json = nlohmann::json;
+//using json = nlohmann::json;
 
 #ifndef SOLRDB
 
@@ -72,6 +72,7 @@ void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string respo
     WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
 }
 
+#if 0
 void TestJson()
 {
     json j;
@@ -121,10 +122,10 @@ void TestJson()
 
     cout << "serialization with pretty printing: " << j.dump(4) << endl;
 }
-
+#endif
 int main()
 {
-    TestJson();
+    //TestJson();
 
     TTcpListenPort* TcpListenPort;
     TTcpConnectedPort* TcpConnectedPort;

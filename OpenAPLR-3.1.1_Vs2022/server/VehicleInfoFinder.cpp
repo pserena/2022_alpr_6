@@ -1,5 +1,10 @@
 #include "VehicleInfoFinder.h"
 
+#define NOMINMAX
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
+
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -7,15 +12,22 @@
 #include <Windows.h>
 #include <winhttp.h>
 
+#include "json.hpp"
+
+
 #pragma comment(lib, "winhttp.lib")
 
 using namespace std;
+using json = nlohmann::json;
 
 int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output) {
     DWORD dwSize = 0;
     DWORD dwDownloaded = 0;
     LPSTR pszOutBuffer;
     BOOL  bResults = FALSE;
+
+    int found = 0;
+    json json_output;
    
     HINTERNET  hSession = NULL;
     HINTERNET  hConnect = NULL;
@@ -36,13 +48,12 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     // below 300 bytes measn no found.
     output.clear();
 
-    while (output.length() < 600 && fuzzy_search < 3) {
+    do {
         output.clear();
         wstring url = L"/solr/swarchitect_alpr/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end());
         if (fuzzy_search != 0) {
             url += L"~" + to_wstring(fuzzy_search);
         }
-        fuzzy_search++;
 
         // Create an HTTP request handle.
         if (hConnect)
@@ -97,7 +108,11 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
                 }
             } while (dwSize > 0);
         }
-    }
+        json_output = json::parse(output);
+        found = json_output["response"]["numFound"];
+        if ( found > 0)
+            break;
+    } while (++fuzzy_search < 3);
 
     // Report any errors.
     if (!bResults)
@@ -108,7 +123,7 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     if (hConnect) WinHttpCloseHandle(hConnect);
     if (hSession) WinHttpCloseHandle(hSession);
     auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
-    cout << "DB search time : " << search_time << "ms - fuzzy : " << fuzzy_search - 1 << endl;
+    cout << "DB search time : " << search_time << "ms (found :" << found << ") for : " << json_output["responseHeader"]["params"]["q"] << endl;
 
     return 0;
 }
