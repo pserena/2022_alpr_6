@@ -4,6 +4,7 @@
 #include <memory>
 #include <queue>
 #include <functional>
+#include <atomic>
 
 #include "VehicleInfoFinder.h"
 
@@ -18,4 +19,5 @@ private:
 	unique_ptr<VehicleInfoFinder> vif_ = make_unique<VehicleInfoFinder>();
 	queue<string> requests_;
 	void plateQueryHandler(string plate, function<void(string)> callback);
+	atomic_int thread_num_ = 0;
 };

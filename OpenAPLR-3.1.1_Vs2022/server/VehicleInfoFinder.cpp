@@ -33,7 +33,7 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     // below 300 bytes measn no found.
     output.clear();
 
-    while (output.length() < 600) {
+    while (output.length() < 600 && fuzzy_search < 3) {
         output.clear();
         wstring url = L"/solr/swarchitect_alpr/select?q=plate_number:" + wstring(plate.begin(), plate.end());
         if (fuzzy_search != 0) {
@@ -104,4 +104,5 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     if (hRequest) WinHttpCloseHandle(hRequest);
     if (hConnect) WinHttpCloseHandle(hConnect);
     if (hSession) WinHttpCloseHandle(hSession);
+    return 0;
 }
