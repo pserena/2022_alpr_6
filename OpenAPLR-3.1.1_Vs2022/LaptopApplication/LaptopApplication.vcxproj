@@ -208,8 +208,11 @@
     <ClCompile Include="..\libs\libopenalpr\statedetection\state_detector.cpp" />
     <ClCompile Include="..\libs\libopenalpr\statedetection\state_detector_impl.cpp" />
     <ClCompile Include="..\OpenCVDeviceEnumerator\DeviceEnumerator.cpp" />
+    <ClCompile Include="CommunicationManager.cpp" />
     <ClCompile Include="LaptopApplication.cpp" />
+    <ClCompile Include="LoginManager.cpp" />
     <ClCompile Include="UIManager.cpp" />
+    <ClCompile Include="VehicleInfoManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\NetworkTCP.h" />

@@ -14,6 +14,12 @@ int main()
     client::UIManager ui{};
     client::IOSourceManager io{};
     client::ALPRProcessor alpr(county, "");
+    client::CommunicationManager commMan;
+    client::LoginManager loginMng;
+    client::VehicleInfoManager vehicleInfoMng;
+    loginMng.linkCommMag(&commMan);
+    vehicleInfoMng.linkCommMag(&commMan);
+    commMan.networkConnect();
 
     while (1) {
         mc.mode = ui.GetVideoMode();
@@ -25,9 +31,11 @@ int main()
         }
 
         if (mc.mode == Mode::mLogin) {
+            loginMng.login();
             continue;
         }
         else if (mc.mode == Mode::mLogout) {
+            loginMng.logout();
             continue;
         }
 
