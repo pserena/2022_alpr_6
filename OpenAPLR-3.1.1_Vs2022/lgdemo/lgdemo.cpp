@@ -91,12 +91,22 @@ int main()
 
     std::string county;
 
-    if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL)
+    while (TRUE)
     {
-        std::cout << "Connection Failed" << std::endl;
-        return(-1);
+        if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL)
+        {
+            std::cout << "Connection Failed. Retry..." << std::endl;
+            //return(-1);
+            Sleep(5000); //1ÃÊÁ¤
+        }
+        else
+        {
+            std::cout << "Connected" << std::endl;
+            break;
+        }
+
     }
-    else std::cout << "Connected" << std::endl;
+    //else std::cout << "Connected" << std::endl;
 
     county = "us";
 

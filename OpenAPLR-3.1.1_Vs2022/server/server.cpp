@@ -2,6 +2,10 @@
 //
 #define SOLRDB
 
+#define NOMINMAX
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 #include <iostream>
 #include <string.h>
 #include "NetworkTCP.h"
@@ -15,11 +19,14 @@
 #include <stdio.h>
 #include <thread>
 
+#include "json.hpp"
 #include "RequestHandler.h"
 
 using namespace std;
+using json = nlohmann::json;
 
 #ifndef SOLRDB
+
 bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_len) {
     if (plate.size() > 7)
         return false;
@@ -65,8 +72,58 @@ void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string respo
     WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
 }
 
+void TestJson()
+{
+    json j;
+    j["pi"] = 3.141;
+    j["happy"] = true;
+    j["name"] = "Niels";
+    j["nothing"] = nullptr;
+    j["answer"]["everything"] = 42;
+    j["list"] = { 1, 0, 2 };
+    j["object"] = { {"currency", "USD"}, {"value", 42.99} };
+    cout << j << endl;
+
+    json j2 = {
+      {"pi", 3.141},
+      {"happy", true},
+      {"name", "Niels"},
+      {"nothing", nullptr},
+      {"answer", {
+        {"everything", 42}
+      }},
+      {"list", {1, 0, 2}},
+      {"object", {
+        {"currency", "USD"},
+        {"value", 42.99}
+      }}
+    };
+
+    cout << j2 << endl;
+
+    assert(j == j2);
+
+    json j11 = "{ \"happy\": true, \"pi\": 3.141 }"_json;
+    auto j12 = R"(
+        {
+            "happy": true,
+            "pi": 3.141
+        }
+    )"_json;
+    auto j13 = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
+
+    assert(j11 == j12 && j == j13);
+
+    string s = j.dump();
+    cout << "serialization: " << s << endl;
+
+    cout << "serialization with pretty printing: " << j.dump(4) << endl;
+}
+
 int main()
 {
+    TestJson();
+
     TTcpListenPort* TcpListenPort;
     TTcpConnectedPort* TcpConnectedPort;
     unordered_set<shared_ptr<TTcpConnectedPort>> connected_ports;
@@ -158,7 +215,15 @@ int main()
                 printf("AcceptTcpConnection Failed\n");
                 return(-1);
             }
-            printf("connected\n");
+
+            printf("connected.\n");
+            char ipbuf[INET_ADDRSTRLEN] = { 0, };
+            memset(ipbuf, 0x00, sizeof(char)* INET_ADDRSTRLEN);
+            strcpy(ipbuf, inet_ntoa(cli_addr.sin_addr));
+            printf("IP address : %s\n", ipbuf);
+            printf("Port : %d\n", ntohs(cli_addr.sin_port));
+        
+            
             connected_ports.insert(shared_ptr<TTcpConnectedPort>(TcpConnectedPort));
             Total--;
         }
@@ -175,7 +240,7 @@ int main()
 				PlateStringLength = ntohs(PlateStringLength);
 				if (PlateStringLength > sizeof(PlateString))
 				{
-					printf("Plate string length  error\n");
+					printf("Plate string length error\n");
 					continue;
 				}
 				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateString, PlateStringLength) != PlateStringLength)
