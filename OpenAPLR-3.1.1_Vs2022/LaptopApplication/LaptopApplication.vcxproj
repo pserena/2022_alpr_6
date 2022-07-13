@@ -210,6 +210,8 @@
     <ClCompile Include="..\OpenCVDeviceEnumerator\DeviceEnumerator.cpp" />
     <ClCompile Include="LaptopApplication.cpp" />
     <ClCompile Include="UIManager.cpp" />
+    <ClCompile Include="IOSourceManager.cpp" />
+    <ClCompile Include="ALPRProcessor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\NetworkTCP.h" />

@@ -41,21 +41,17 @@ Mode UIManager::GetVideoMode(void)
     do
     {
         std::cout << "Select Live Video, PlayBack File or Image File" << std::endl;
-        std::cout << "1 - Login" << std::endl;
-        std::cout << "2 - Logout" << std::endl;
-        std::cout << "3 - PlayBack File" << std::endl;
-        std::cout << "4 - Image File" << std::endl;
-        std::cout << "5 - Test Connection" << std::endl;
+        std::cout << "1 - PlayBack File" << std::endl;
+        std::cout << "2 - Image File" << std::endl;
+        std::cout << "3 - Test Connection" << std::endl;
         std::cout << "E - Exit" << std::endl;
 
         getconchar(key);
         std::cout << key.uChar.AsciiChar << std::endl;
         if ((key.uChar.AsciiChar == 'E') || (key.uChar.AsciiChar == 'e')) break;
-        else if (key.uChar.AsciiChar == '1') mode = Mode::mLogin;
-        else if (key.uChar.AsciiChar == '2') mode = Mode::mLogout;
-        else if (key.uChar.AsciiChar == '3') mode = Mode::mPlayback_Video;
-        else if (key.uChar.AsciiChar == '4') mode = Mode::mImage_File;
-        else if (key.uChar.AsciiChar == '5') mode = Mode::mTest_Connection;
+        else if (key.uChar.AsciiChar == '1') mode = Mode::mPlayback_Video;
+        else if (key.uChar.AsciiChar == '2') mode = Mode::mImage_File;
+        else if (key.uChar.AsciiChar == '3') mode = Mode::mTest_Connection;
         else std::cout << "Invalid Input" << std::endl << std::endl;
     } while (mode == Mode::mNone);
     return(mode);
