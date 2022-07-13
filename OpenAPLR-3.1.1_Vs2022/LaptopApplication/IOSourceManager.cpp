@@ -50,15 +50,30 @@ static double avgfps()
 	return _avgfps;
 }
 
-bool IOSourceManager::OpenInputVideo(char filename[MAX_PATH])
+bool IOSourceManager::OpenInputVideo(Mode mode, VideoResolution vres, int dev_id, char filename[MAX_PATH])
 {
-	cap.open(filename);
+	if (mode == Mode::mPlayback_Video) {
+		cap.open(filename);
+		memcpy(inputfile, filename, MAX_PATH);
+	}
+	else if (mode == Mode::mLive_Video)
+		cap.open(dev_id, cv::CAP_ANY); // 0 = autodetect default API
 	if (cap.isOpened()) {
+		if (vres == VideoResolution::r1280X720)
+		{
+			cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
+			cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
+		}
+		else if (vres == VideoResolution::r640X480)
+		{
+			cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+			cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+		}
 		// Default resolutions of the frame are obtained.The default resolutions are system dependent.
 		frameno = 0;
 		frame_width = GetInputVideoProp(cv::CAP_PROP_FRAME_WIDTH);
 		frame_height = GetInputVideoProp(cv::CAP_PROP_FRAME_HEIGHT);
-		memcpy(inputfile, filename, MAX_PATH);
+		
 		printf("Frame width= %d height=%d\n", frame_width, frame_height);
 	}
 	return cap.isOpened();

@@ -15,7 +15,8 @@ using namespace std;
 
 namespace client
 {
-	enum class Mode { mNone, mLogin, mLogout, mPlayback_Video, mImage_File, mTest_Connection };
+	enum class Mode { mNone, mPlayback_Video, mLive_Video, mImage_File };
+	enum class VideoResolution { rNone, r640X480, r1280X720 };
 	enum class VideoSaveMode { vNone, vNoSave, vSave, vSaveWithNoALPR };
 	enum class ResponseMode { ReadingHeader, ReadingMsg };
 
@@ -24,22 +25,33 @@ namespace client
 	class MainController {
 	public:
 		Mode mode;
+		int dev_id;
+		VideoResolution vres;
 		char inputfilename[MAX_PATH];
 
-		MainController() {
+		MainController(void) {
 			mode = Mode::mNone;
+			dev_id = -1;
+			vres = VideoResolution::rNone;
 			memset(inputfilename, 0, MAX_PATH);
 		}
+		virtual ~MainController(void) { }
 	private:
 	};
 
 	class UIManager {
 	public:
 		Mode GetVideoMode(void);
+		int GetVideoDevice(void);
+		VideoResolution GetVideoResolution(void);
 		bool GetFileName(Mode mode, char filename[MAX_PATH]);
 		VideoSaveMode GetVideoSaveMode(void);
 		void PrintErrMsg(std::string msg);
 
+		UIManager(void) {
+		}
+		virtual ~UIManager(void) {
+		}
 		void destroyAll(void) {
 			destroyAllWindows();
 		}
@@ -51,7 +63,13 @@ namespace client
 	public:
 		VideoSaveMode videosavemode;
 
-		bool OpenInputVideo(char filename[MAX_PATH]);
+		IOSourceManager(void) {
+			videosavemode = VideoSaveMode::vNone;
+		}
+		virtual ~IOSourceManager(void) {
+
+		}
+		bool OpenInputVideo(Mode mode, VideoResolution vres, int dev_id, char filename[MAX_PATH]);
 		bool OpenOutputVideo(void);
 		void process(Mode mode, function<void(Mat*)> alpr_process);
 		void ClossAll(void);
@@ -82,7 +100,7 @@ namespace client
 		virtual ~CommunicationManager();
 
 		int networkConnect(void);
-		int networkConnectColse(void);
+		int networkConnectClose(void);
 		int retryNetworkConnect(void);
 		int sendCommunicationData(unsigned char* data);
 		int receiveCommunicationData(char* data);
@@ -113,5 +131,4 @@ namespace client
 	private:
 		CommunicationManager* commMan;
 	};
-
 }

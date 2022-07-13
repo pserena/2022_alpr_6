@@ -12,9 +12,10 @@ int main()
 {
     std::string county = "us";
 
-    client::MainController mc{};
-    client::UIManager ui{};
-    client::IOSourceManager io{};
+    client::MainController mc;
+    client::UIManager ui;
+    client::IOSourceManager io;
+	client::ALPRProcessor alpr(county, "");
     client::CommunicationManager commMan;
     client::LoginManager loginMng;
     client::VehicleInfoManager vehicleInfoMng;
@@ -22,31 +23,29 @@ int main()
     vehicleInfoMng.linkCommMag(&commMan);
     commMan.networkConnect();
 
+	if (loginMng.login())
+		exit(1);
+
 	mc.mode = ui.GetVideoMode();
 	if (mc.mode == Mode::mNone)
 		exit(0);
 
-	if (mc.mode == Mode::mTest_Connection) {
-		ui.destroyAll();
-		return 0;
+	if (mc.mode == Mode::mLive_Video)
+	{
+		mc.dev_id = ui.GetVideoDevice();
+		if (mc.dev_id == -1) exit(0);
+		mc.vres = ui.GetVideoResolution();
+		if (mc.vres == VideoResolution::rNone) exit(0);
 	}
-
-        if (mc.mode == Mode::mLogin) {
-            loginMng.login();
-            continue;
-        }
-        else if (mc.mode == Mode::mLogout) {
-            loginMng.logout();
-            continue;
-        }
-
-        if (!ui.GetFileName(mc.mode, mc.inputfilename))
-            exit(0);
-
+	else
+	{
+		if (!ui.GetFileName(mc.mode, mc.inputfilename))
+			exit(0);
+	}
+	
 	if (mc.mode != Mode::mImage_File)
 		io.videosavemode = ui.GetVideoSaveMode();
 
-	client::ALPRProcessor alpr(county, "");
 	alpr.setTopN(2);
 	if (alpr.isLoaded() == false)
 	{
@@ -54,9 +53,9 @@ int main()
 		return 1;
 	}
 
-	if (mc.mode == Mode::mPlayback_Video)
+	if (mc.mode != Mode::mImage_File)
 	{
-		if (!io.OpenInputVideo(mc.inputfilename)) {
+		if (!io.OpenInputVideo(mc.mode, mc.vres, mc.dev_id, mc.inputfilename)) {
 			ui.PrintErrMsg("Error opening video file");
 			return -1;
 		}
@@ -78,6 +77,7 @@ int main()
 	// When everything done, release the video capture and write object
 	io.ClossAll();
 	ui.destroyAll();
+	loginMng.logout();
 
     return 0;
 }

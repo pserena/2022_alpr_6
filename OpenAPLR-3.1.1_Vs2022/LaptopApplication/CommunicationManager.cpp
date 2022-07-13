@@ -31,13 +31,13 @@ int CommunicationManager::networkConnect(void) {
     return 0;
 }
 
-int CommunicationManager::networkConnectColse(void) {
+int CommunicationManager::networkConnectClose(void) {
     CloseTcpConnectedPort(&TcpConnectedPort);
     return 0;
 }
 
 int CommunicationManager::retryNetworkConnect(void) {
-    //networkConnectColse();
+    //networkConnectClose();
     networkConnect();
     return 0;
 }
