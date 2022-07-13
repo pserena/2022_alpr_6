@@ -39,6 +39,15 @@
     <ClCompile Include="UIManager.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="CommunicationManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="LoginManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="VehicleInfoManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="IOSourceManager.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -54,6 +63,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="LaptopModules.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="json.hpp">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

@@ -19,11 +19,11 @@
 #include <stdio.h>
 #include <thread>
 
-#include "json.hpp"
+//#include "json.hpp"
 #include "RequestHandler.h"
 
 using namespace std;
-using json = nlohmann::json;
+//using json = nlohmann::json;
 
 #ifndef SOLRDB
 
@@ -72,6 +72,7 @@ void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string respo
     WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
 }
 
+#if 0
 void TestJson()
 {
     json j;
@@ -121,10 +122,10 @@ void TestJson()
 
     cout << "serialization with pretty printing: " << j.dump(4) << endl;
 }
-
+#endif
 int main()
 {
-    TestJson();
+    //TestJson();
 
     TTcpListenPort* TcpListenPort;
     TTcpConnectedPort* TcpConnectedPort;
@@ -224,10 +225,8 @@ int main()
             strcpy(ipbuf, inet_ntoa(cli_addr.sin_addr));
             printf("IP address : %s\n", ipbuf);
             printf("Port : %d\n", ntohs(cli_addr.sin_port));
-        
-            
             connected_ports.insert(shared_ptr<TTcpConnectedPort>(TcpConnectedPort));
-            Total--;
+            rh.connect(TcpConnectedPort->ConnectedFd);
         }
 
 		for (auto& connected_fd : connected_ports) {
@@ -236,6 +235,7 @@ int main()
 				{
 					printf("ReadDataTcp 1 error - close socket\n");
 					closesocket(connected_fd->ConnectedFd);
+                    rh.disconnect(connected_fd->ConnectedFd);
 					connected_ports.erase(connected_fd);
 					break;
 				}
@@ -254,7 +254,7 @@ int main()
 #ifdef SOLRDB
                 function<void(string)> callback = bind(&sendResponse, connected_fd, placeholders::_1);
                 /* TODO : Test Code for Solr DB */
-                rh.handle(PlateString, move(callback));
+                rh.handle(connected_fd->ConnectedFd, PlateString, move(callback));
 #else
 				if (partialMatch(dbp, PlateString, DBRecord, sizeof(DBRecord)))
 				{

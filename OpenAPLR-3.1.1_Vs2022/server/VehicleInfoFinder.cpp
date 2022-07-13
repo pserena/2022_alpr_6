@@ -1,5 +1,10 @@
 #include "VehicleInfoFinder.h"
 
+#define NOMINMAX
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
+
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -7,15 +12,22 @@
 #include <Windows.h>
 #include <winhttp.h>
 
+#include "json.hpp"
+
+
 #pragma comment(lib, "winhttp.lib")
 
 using namespace std;
+using json = nlohmann::json;
 
 int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output) {
     DWORD dwSize = 0;
     DWORD dwDownloaded = 0;
     LPSTR pszOutBuffer;
     BOOL  bResults = FALSE;
+
+    int found = 0;
+    json json_output;
    
     HINTERNET  hSession = NULL;
     HINTERNET  hConnect = NULL;
@@ -32,17 +44,31 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     if (hSession)
         hConnect = WinHttpConnect(hSession, L"127.0.0.1",
             8983, 0);
-    int fuzzy_search = 0;
+    int priority = 0;
     // below 300 bytes measn no found.
     output.clear();
 
-    while (output.length() < 600 && fuzzy_search < 3) {
-        output.clear();
-        wstring url = L"/solr/swarchitect_alpr/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end());
-        if (fuzzy_search != 0) {
-            url += L"~" + to_wstring(fuzzy_search);
+    do {
+        wstring url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:";
+        switch (priority) {
+        case 0:
+            url += wstring(plate.begin(), plate.end());
+            break;
+        case 1:
+            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end()) + L"?";
+            break;
+        case 2:
+            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:?" + wstring(plate.begin(), plate.end());
+            break;
+        case 3:
+            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end()) + L"~1";
+            break;
+        case 4:
+        default:
+            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end()) + L"~2";
+            break;
         }
-        fuzzy_search++;
+        output.clear();
 
         // Create an HTTP request handle.
         if (hConnect)
@@ -97,7 +123,11 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
                 }
             } while (dwSize > 0);
         }
-    }
+        json_output = json::parse(output);
+        found = json_output["response"]["numFound"];
+        if ( found > 0)
+            break;
+    } while (++priority < 5);
 
     // Report any errors.
     if (!bResults)
@@ -108,7 +138,7 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     if (hConnect) WinHttpCloseHandle(hConnect);
     if (hSession) WinHttpCloseHandle(hSession);
     auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
-    cout << "DB search time : " << search_time << "ms - fuzzy : " << fuzzy_search - 1 << endl;
+    cout << "DB search time : " << search_time << "ms (found :" << found << ") for : " << json_output["responseHeader"]["params"]["q"] << endl;
 
     return 0;
 }

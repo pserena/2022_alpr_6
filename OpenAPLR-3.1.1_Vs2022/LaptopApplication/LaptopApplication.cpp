@@ -15,6 +15,12 @@ int main()
     client::MainController mc{};
     client::UIManager ui{};
     client::IOSourceManager io{};
+    client::CommunicationManager commMan;
+    client::LoginManager loginMng;
+    client::VehicleInfoManager vehicleInfoMng;
+    loginMng.linkCommMag(&commMan);
+    vehicleInfoMng.linkCommMag(&commMan);
+    commMan.networkConnect();
 
 	mc.mode = ui.GetVideoMode();
 	if (mc.mode == Mode::mNone)
@@ -25,8 +31,17 @@ int main()
 		return 0;
 	}
 
-	if (!ui.GetFileName(mc.mode, mc.inputfilename))
-		exit(0);
+        if (mc.mode == Mode::mLogin) {
+            loginMng.login();
+            continue;
+        }
+        else if (mc.mode == Mode::mLogout) {
+            loginMng.logout();
+            continue;
+        }
+
+        if (!ui.GetFileName(mc.mode, mc.inputfilename))
+            exit(0);
 
 	if (mc.mode != Mode::mImage_File)
 		io.videosavemode = ui.GetVideoSaveMode();

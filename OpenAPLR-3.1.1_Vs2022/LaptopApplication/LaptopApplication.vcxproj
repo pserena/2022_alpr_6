@@ -208,14 +208,18 @@
     <ClCompile Include="..\libs\libopenalpr\statedetection\state_detector.cpp" />
     <ClCompile Include="..\libs\libopenalpr\statedetection\state_detector_impl.cpp" />
     <ClCompile Include="..\OpenCVDeviceEnumerator\DeviceEnumerator.cpp" />
+    <ClCompile Include="CommunicationManager.cpp" />
     <ClCompile Include="LaptopApplication.cpp" />
+    <ClCompile Include="LoginManager.cpp" />
     <ClCompile Include="UIManager.cpp" />
+    <ClCompile Include="VehicleInfoManager.cpp" />
     <ClCompile Include="IOSourceManager.cpp" />
     <ClCompile Include="ALPRProcessor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\NetworkTCP.h" />
     <ClInclude Include="..\OpenCVDeviceEnumerator\DeviceEnumerator.h" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="LaptopModules.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -11,6 +11,7 @@
 using namespace std;
 using namespace cv;
 using namespace alpr;
+using namespace std;
 
 namespace client
 {
@@ -75,18 +76,42 @@ namespace client
 	private:
 	};
 
+	class CommunicationManager {
+	public:
+		CommunicationManager();
+		virtual ~CommunicationManager();
+
+		int networkConnect(void);
+		int networkConnectColse(void);
+		int retryNetworkConnect(void);
+		int sendCommunicationData(unsigned char* data);
+		int receiveCommunicationData(char* data);
+		int authenticate(string strID, string strPw);
+	private:
+	};
+
 	class VehicleInfoManager {
 	public:
+		VehicleInfoManager();
+		virtual ~VehicleInfoManager();
+
+		int linkCommMag(CommunicationManager* comMan);
+		int sendVehicleInfo(unsigned char* vehicleData);
+		int receiveCommunicationData(char* vehicleData);
 	private:
+		CommunicationManager* commMan;
 	};
 
 	class LoginManager {
 	public:
+		LoginManager();
+		virtual ~LoginManager();
+
+		int linkCommMag(CommunicationManager* comMan);
+		int login(void);
+		int logout(void);
 	private:
+		CommunicationManager* commMan;
 	};
 
-	class CommunicationManager {
-	public:
-	private:
-	};
 }
