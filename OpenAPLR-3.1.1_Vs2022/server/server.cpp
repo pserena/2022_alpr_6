@@ -1,14 +1,16 @@
 // server.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
+#define SOLRDB
 
 #include <iostream>
 #include <string.h>
 #include "NetworkTCP.h"
 #include <Windows.h>
+#ifndef SOLRDB
 #include <db.h> 
+#endif
 #include <unordered_set>
 #include <memory>
-#include <chrono>
 
 #include <stdio.h>
 #include <thread>
@@ -17,8 +19,7 @@
 
 using namespace std;
 
-#define SOLRDB
-
+#ifndef SOLRDB
 bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_len) {
     if (plate.size() > 7)
         return false;
@@ -51,6 +52,8 @@ bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
     /* Zero out the DBTs before using them. */
     return doPartitionSearch(dbp, string(plate), out, out_len);
 }
+#endif
+
 
 void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string response) {
     char buf[8192];
@@ -181,7 +184,6 @@ int main()
 					continue;
 				}
 				printf("Plate is : %s\n", PlateString);
-				auto start_time = std::chrono::milliseconds(GetTickCount64());
 #ifdef SOLRDB
                 function<void(string)> callback = bind(&sendResponse, connected_fd, placeholders::_1);
                 /* TODO : Test Code for Solr DB */
@@ -198,11 +200,6 @@ int main()
 					printf("sent ->%s\n", (char*)DBRecord);
 				}
 #endif
-				//Sleep(10);
-				auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
-
-				max_search_time = max(max_search_time, search_time);
-				cout << ">>>>>>>>>>>> DB search time :" << search_time << " (max : " << max_search_time << ")" << endl;
 			}
         }
 

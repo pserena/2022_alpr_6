@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <string>
+#include <chrono>
+
 #include <Windows.h>
 #include <winhttp.h>
 
@@ -18,6 +20,7 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     HINTERNET  hSession = NULL;
     HINTERNET  hConnect = NULL;
     HINTERNET  hRequest = NULL;
+    auto start_time = std::chrono::milliseconds(GetTickCount64());
 
     // Use WinHttpOpen to obtain a session handle.
     hSession = WinHttpOpen(L"WinHTTP Example/1.0",
@@ -35,7 +38,7 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
 
     while (output.length() < 600 && fuzzy_search < 3) {
         output.clear();
-        wstring url = L"/solr/swarchitect_alpr/select?q=plate_number:" + wstring(plate.begin(), plate.end());
+        wstring url = L"/solr/swarchitect_alpr/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end());
         if (fuzzy_search != 0) {
             url += L"~" + to_wstring(fuzzy_search);
         }
@@ -104,5 +107,8 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     if (hRequest) WinHttpCloseHandle(hRequest);
     if (hConnect) WinHttpCloseHandle(hConnect);
     if (hSession) WinHttpCloseHandle(hSession);
+    auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
+    cout << "DB search time : " << search_time << "ms - fuzzy : " << fuzzy_search - 1 << endl;
+
     return 0;
 }
