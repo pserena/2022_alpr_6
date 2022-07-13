@@ -13,12 +13,12 @@
 #include "motiondetector.h"
 #include "alpr.h"
 #include "DeviceEnumerator.h"
-
+#include "json.hpp"
 
 using namespace alpr;
 using namespace std;
 using namespace cv;
-
+using json = nlohmann::json;
 
 enum class Mode { mNone, mLogin, mLogout, mPlayback_Video, mImage_File, mTest_Connection };
 enum class VideoResolution { rNone, r640X480, r1280X720 };
@@ -26,8 +26,8 @@ enum class VideoSaveMode { vNone, vNoSave, vSave, vSaveWithNoALPR};
 enum class ResponseMode { ReadingHeader,ReadingMsg };
 
 ResponseMode GetResponseMode= ResponseMode::ReadingHeader;
-short RespHdrNumBytes;
-char ResponseBuffer[2048];
+size_t RespHdrNumBytes;
+char ResponseBuffer[8192];
 unsigned int BytesInResponseBuffer = 0;
 ssize_t BytesNeeded = sizeof(RespHdrNumBytes);
 
@@ -73,8 +73,63 @@ static void GetResponses(void);
 /***********************************************************************************/
 /* Main                                                                            */
 /***********************************************************************************/
+
+void TestJson()
+{
+    return;
+
+    json j;
+    j["pi"] = 3.141;
+    j["happy"] = true;
+    j["name"] = "Niels";
+    j["nothing"] = nullptr;
+    j["answer"]["everything"] = 42;
+    j["list"] = { 1, 0, 2 };
+    j["object"] = { {"currency", "USD"}, {"value", 42.99} };
+    cout << j << endl;
+
+    json j2 = {
+      {"pi", 3.141},
+      {"happy", true},
+      {"name", "Niels"},
+      {"nothing", nullptr},
+      {"answer", {
+        {"everything", 42}
+      }},
+      {"list", {1, 0, 2}},
+      {"object", {
+        {"currency", "USD"},
+        {"value", 42.99}
+      }}
+    };
+
+    cout << j2 << endl;
+
+    cout << "!!!!!!!!" << j2["name"] << endl;
+
+    assert(j == j2);
+
+    json j11 = "{ \"happy\": true, \"pi\": 3.141 }"_json;
+    auto j12 = R"(
+        {
+            "happy": true,
+            "pi": 3.141
+        }
+    )"_json;
+    auto j13 = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
+
+    assert(j11 == j12 && j == j13);
+
+    string s = j.dump();
+    cout << "serialization: " << s << endl;
+
+    cout << "serialization with pretty printing: " << j.dump(4) << endl;
+}
+
 int main()
 {
+    TestJson();
+
     Mode mode;
     VideoSaveMode videosavemode;
     VideoResolution vres = VideoResolution::rNone;
@@ -91,12 +146,22 @@ int main()
 
     std::string county;
 
-    if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL)
+    while (TRUE)
     {
-        std::cout << "Connection Failed" << std::endl;
-        return(-1);
+        if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL)
+        {
+            std::cout << "Connection Failed. Retry..." << std::endl;
+            //return(-1);
+            Sleep(5000); //1ÃÊÁ¤
+        }
+        else
+        {
+            std::cout << "Connected" << std::endl;
+            break;
+        }
+
     }
-    else std::cout << "Connected" << std::endl;
+    //else std::cout << "Connected" << std::endl;
 
     county = "us";
 
@@ -647,6 +712,7 @@ static void GetResponses(void)
              GetResponseMode = ResponseMode::ReadingMsg;
              BytesNeeded = RespHdrNumBytes;
              BytesInResponseBuffer = 0;
+             cout << "---Size : " << BytesNeeded << endl;
          }
          else if (GetResponseMode == ResponseMode::ReadingMsg)
          {

@@ -2,9 +2,10 @@
 #include <iostream>
 
 using namespace std;
-class VehicleInfoFinder {
+class VehicleInfoFinder final {
 public:
 	VehicleInfoFinder() = default;
-	virtual ~VehicleInfoFinder() = default;
+	~VehicleInfoFinder() = default;
 	int getVehicleInformation(const string& plate, string& output);
+
 };
