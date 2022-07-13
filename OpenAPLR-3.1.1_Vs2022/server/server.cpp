@@ -101,6 +101,8 @@ void TestJson()
 
     cout << j2 << endl;
 
+    cout << "!!!!!!!!" << j2["name"] << endl;
+
     assert(j == j2);
 
     json j11 = "{ \"happy\": true, \"pi\": 3.141 }"_json;

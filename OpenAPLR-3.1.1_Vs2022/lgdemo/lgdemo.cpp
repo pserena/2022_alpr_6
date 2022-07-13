@@ -13,12 +13,12 @@
 #include "motiondetector.h"
 #include "alpr.h"
 #include "DeviceEnumerator.h"
-
+#include "json.hpp"
 
 using namespace alpr;
 using namespace std;
 using namespace cv;
-
+using json = nlohmann::json;
 
 enum class Mode { mNone, mLogin, mLogout, mPlayback_Video, mImage_File, mTest_Connection };
 enum class VideoResolution { rNone, r640X480, r1280X720 };
@@ -73,8 +73,63 @@ static void GetResponses(void);
 /***********************************************************************************/
 /* Main                                                                            */
 /***********************************************************************************/
+
+void TestJson()
+{
+    return;
+
+    json j;
+    j["pi"] = 3.141;
+    j["happy"] = true;
+    j["name"] = "Niels";
+    j["nothing"] = nullptr;
+    j["answer"]["everything"] = 42;
+    j["list"] = { 1, 0, 2 };
+    j["object"] = { {"currency", "USD"}, {"value", 42.99} };
+    cout << j << endl;
+
+    json j2 = {
+      {"pi", 3.141},
+      {"happy", true},
+      {"name", "Niels"},
+      {"nothing", nullptr},
+      {"answer", {
+        {"everything", 42}
+      }},
+      {"list", {1, 0, 2}},
+      {"object", {
+        {"currency", "USD"},
+        {"value", 42.99}
+      }}
+    };
+
+    cout << j2 << endl;
+
+    cout << "!!!!!!!!" << j2["name"] << endl;
+
+    assert(j == j2);
+
+    json j11 = "{ \"happy\": true, \"pi\": 3.141 }"_json;
+    auto j12 = R"(
+        {
+            "happy": true,
+            "pi": 3.141
+        }
+    )"_json;
+    auto j13 = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
+
+    assert(j11 == j12 && j == j13);
+
+    string s = j.dump();
+    cout << "serialization: " << s << endl;
+
+    cout << "serialization with pretty printing: " << j.dump(4) << endl;
+}
+
 int main()
 {
+    TestJson();
+
     Mode mode;
     VideoSaveMode videosavemode;
     VideoResolution vres = VideoResolution::rNone;
