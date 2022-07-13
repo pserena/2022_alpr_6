@@ -1,23 +1,31 @@
 // server.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
+#define SOLRDB
+
+#define NOMINMAX
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #include <iostream>
 #include <string.h>
 #include "NetworkTCP.h"
 #include <Windows.h>
+#ifndef SOLRDB
 #include <db.h> 
+#endif
 #include <unordered_set>
 #include <memory>
-#include <chrono>
 
 #include <stdio.h>
 #include <thread>
 
+//#include "json.hpp"
 #include "RequestHandler.h"
 
 using namespace std;
+//using json = nlohmann::json;
 
-
+#ifndef SOLRDB
 
 bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_len) {
     if (plate.size() > 7)
@@ -51,19 +59,74 @@ bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
     /* Zero out the DBTs before using them. */
     return doPartitionSearch(dbp, string(plate), out, out_len);
 }
+#endif
 
-void sendResponse(TTcpConnectedPort* tcp_connected_port, string response) {
+
+void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string response) {
     char buf[8192];
     size_t SendMsgHdr = ntohs(response.length());
     strcpy_s(buf, response.c_str());
     cout << "--------- length : " << response.length() << "----------" << endl;
-    cout << response << endl;
-    WriteDataTcp(tcp_connected_port, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
-    WriteDataTcp(tcp_connected_port, (unsigned char*)buf, response.length());
+    //cout << response << endl;
+    WriteDataTcp(tcp_connected_port.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
+    WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
 }
 
+#if 0
+void TestJson()
+{
+    json j;
+    j["pi"] = 3.141;
+    j["happy"] = true;
+    j["name"] = "Niels";
+    j["nothing"] = nullptr;
+    j["answer"]["everything"] = 42;
+    j["list"] = { 1, 0, 2 };
+    j["object"] = { {"currency", "USD"}, {"value", 42.99} };
+    cout << j << endl;
+
+    json j2 = {
+      {"pi", 3.141},
+      {"happy", true},
+      {"name", "Niels"},
+      {"nothing", nullptr},
+      {"answer", {
+        {"everything", 42}
+      }},
+      {"list", {1, 0, 2}},
+      {"object", {
+        {"currency", "USD"},
+        {"value", 42.99}
+      }}
+    };
+
+    cout << j2 << endl;
+
+    cout << "!!!!!!!!" << j2["name"] << endl;
+
+    assert(j == j2);
+
+    json j11 = "{ \"happy\": true, \"pi\": 3.141 }"_json;
+    auto j12 = R"(
+        {
+            "happy": true,
+            "pi": 3.141
+        }
+    )"_json;
+    auto j13 = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
+
+    assert(j11 == j12 && j == j13);
+
+    string s = j.dump();
+    cout << "serialization: " << s << endl;
+
+    cout << "serialization with pretty printing: " << j.dump(4) << endl;
+}
+#endif
 int main()
 {
+    //TestJson();
+
     TTcpListenPort* TcpListenPort;
     TTcpConnectedPort* TcpConnectedPort;
     unordered_set<shared_ptr<TTcpConnectedPort>> connected_ports;
@@ -72,13 +135,16 @@ int main()
     bool NeedStringLength = true;
     unsigned short PlateStringLength;
     char PlateString[1024];
+#ifndef SOLRDB
     char DBRecord[2048];
     DB* dbp; /* DB structure handle */
     u_int32_t flags; /* database open flags */
     int ret; /* function return value */
     ssize_t result;
 
+#endif
 
+#ifndef SOLRDB
     /* Initialize the structure. This
      * database is not opened in an environment,
      * so the environment pointer is NULL. */
@@ -104,6 +170,7 @@ int main()
         printf("DB Open Error\n");
         return -1;
     }
+#endif
 
     std::cout << "Listening\n";
     if ((TcpListenPort = OpenTcpListenPort(2222)) == NULL)  // Open UDP Network port
@@ -151,9 +218,15 @@ int main()
                 printf("AcceptTcpConnection Failed\n");
                 return(-1);
             }
-            printf("connected\n");
+
+            printf("connected.\n");
+            char ipbuf[INET_ADDRSTRLEN] = { 0, };
+            memset(ipbuf, 0x00, sizeof(char)* INET_ADDRSTRLEN);
+            strcpy(ipbuf, inet_ntoa(cli_addr.sin_addr));
+            printf("IP address : %s\n", ipbuf);
+            printf("Port : %d\n", ntohs(cli_addr.sin_port));
             connected_ports.insert(shared_ptr<TTcpConnectedPort>(TcpConnectedPort));
-            Total--;
+            rh.connect(TcpConnectedPort->ConnectedFd);
         }
 
 		for (auto& connected_fd : connected_ports) {
@@ -162,13 +235,14 @@ int main()
 				{
 					printf("ReadDataTcp 1 error - close socket\n");
 					closesocket(connected_fd->ConnectedFd);
+                    rh.disconnect(connected_fd->ConnectedFd);
 					connected_ports.erase(connected_fd);
 					break;
 				}
 				PlateStringLength = ntohs(PlateStringLength);
 				if (PlateStringLength > sizeof(PlateString))
 				{
-					printf("Plate string length  error\n");
+					printf("Plate string length error\n");
 					continue;
 				}
 				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateString, PlateStringLength) != PlateStringLength)
@@ -177,11 +251,10 @@ int main()
 					continue;
 				}
 				printf("Plate is : %s\n", PlateString);
-				auto start_time = std::chrono::milliseconds(GetTickCount64());
-#if 1              
-                function<void(string)> callback = bind(&sendResponse, connected_fd.get(), placeholders::_1);
+#ifdef SOLRDB
+                function<void(string)> callback = bind(&sendResponse, connected_fd, placeholders::_1);
                 /* TODO : Test Code for Solr DB */
-                rh.handle(PlateString, move(callback));
+                rh.handle(connected_fd->ConnectedFd, PlateString, move(callback));
 #else
 				if (partialMatch(dbp, PlateString, DBRecord, sizeof(DBRecord)))
 				{
@@ -194,11 +267,6 @@ int main()
 					printf("sent ->%s\n", (char*)DBRecord);
 				}
 #endif
-				//Sleep(10);
-				auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
-
-				max_search_time = max(max_search_time, search_time);
-				cout << ">>>>>>>>>>>> DB search time :" << search_time << " (max : " << max_search_time << ")" << endl;
 			}
         }
 
