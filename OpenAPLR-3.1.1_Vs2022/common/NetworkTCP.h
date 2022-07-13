@@ -16,6 +16,7 @@ typedef SSIZE_T ssize_t;
 #define  SOCKET_FD_TYPE SOCKET
 #define  BAD_SOCKET_FD INVALID_SOCKET
 
+#define AES_ENCRYPTION  (TRUE)     // decision for applying AES256 encryption
 
 //------------------------------------------------------------------------------------------------
 // Types
