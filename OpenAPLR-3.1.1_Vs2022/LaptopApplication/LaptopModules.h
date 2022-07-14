@@ -5,13 +5,13 @@
 #include <windows.h>
 #include <opencv2/highgui.hpp>
 #include <functional>
+#include <map>
 
 #include "alpr.h"
 
 using namespace std;
 using namespace cv;
 using namespace alpr;
-using namespace std;
 
 namespace client
 {
@@ -19,8 +19,6 @@ namespace client
 	enum class VideoResolution { rNone, r640X480, r1280X720 };
 	enum class VideoSaveMode { vNone, vNoSave, vSave, vSaveWithNoALPR };
 	enum class ResponseMode { ReadingHeader, ReadingMsg };
-
-	using fp = void (*)(Mat);
 
 	class MainController {
 	public:
@@ -65,6 +63,10 @@ namespace client
 
 		IOSourceManager(void) {
 			videosavemode = VideoSaveMode::vNone;
+			frameno = 0;
+			frame_width = 0;
+			frame_height = 0;
+			memset(inputfile, 0, MAX_PATH);
 		}
 		virtual ~IOSourceManager(void) {
 
@@ -72,6 +74,7 @@ namespace client
 		bool OpenInputVideo(Mode mode, VideoResolution vres, int dev_id, char filename[MAX_PATH]);
 		bool OpenOutputVideo(void);
 		void process(Mode mode, function<void(Mat*)> alpr_process);
+		void SaveOutputVideo(Mat frame);
 		void ClossAll(void);
 	
 	private:
