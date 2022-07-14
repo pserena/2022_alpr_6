@@ -7,15 +7,18 @@ using namespace client;
 #define NUMBEROFPREVIOUSPLATES 10
 char LastPlates[NUMBEROFPREVIOUSPLATES][64] = { "","","","","" };
 unsigned int CurrentPlate = 0;
+Point2i last_point(0, 0);
+int process_count = 0;
 
-void ALPRProcessor::process(Mat *frame)
+void ALPRProcessor::process(Mat frame)
 {
 	std::vector<AlprRegionOfInterest> regionsOfInterest;
-	regionsOfInterest.push_back(AlprRegionOfInterest(0, 0, frame->cols, frame->rows));
+	regionsOfInterest.push_back(AlprRegionOfInterest(0, 0, frame.cols, frame.rows));
+	Rect totalrect(0, 0, frame.cols, frame.rows);
 	AlprResults results;
 
 	if (regionsOfInterest.size() > 0)
-		results = recognize(frame->data, (int)frame->elemSize(), frame->cols, frame->rows,
+		results = recognize(frame.data, (int)frame.elemSize(), frame.cols, frame.rows,
 			regionsOfInterest);
 
 	for (int i = 0; i < results.plates.size(); i++)
@@ -23,16 +26,20 @@ void ALPRProcessor::process(Mat *frame)
 		char textbuffer[1024];
 		bool found = false;
 		std::vector<cv::Point2f> pointset;
+		std::vector<cv::Point2i> psi;
 
-		for (int z = 0; z < 4; z++)
+		for (int z = 0; z < 4; z++) {
 			pointset.push_back(Point2i(results.plates[i].plate_points[z].x,
 				results.plates[i].plate_points[z].y));
+			psi.push_back(Point2i(pointset[i]));
+		}
+
 		cv::Rect rect = cv::boundingRect(pointset);
-		cv::rectangle(*frame, rect, cv::Scalar(0, 255, 0), 2);
+		cv::rectangle(frame, rect, cv::Scalar(0, 255, 0), 2);
 		sprintf_s(textbuffer, "%s - %.2f", results.plates[i].bestPlate.characters.c_str(),
 			results.plates[i].bestPlate.overall_confidence);
 
-		cv::putText(*frame, textbuffer,
+		cv::putText(frame, textbuffer,
 			cv::Point(rect.x, rect.y - 5), //top-left position
 			FONT_HERSHEY_COMPLEX_SMALL, 1,
 			Scalar(0, 255, 0), 0, LINE_AA, false);
@@ -45,11 +52,25 @@ void ALPRProcessor::process(Mat *frame)
 				break;
 			}
 		}
+
 		if (!found)
 		{
+			Mat plate_cropped;
+			string rs = results.plates[i].bestPlate.characters.c_str();
 
+			if (process_count == 0 || abs(last_point.x - psi[0].x) > 80)
+			{
+				plate_uid++;
+				plate_changed = true;
+				plate_cropped = frame(rect & totalrect);
+			}
+
+			viManager->setRecognizedInfo(rs, plate_uid, plate_cropped);
 		}
+
 		strcpy_s(LastPlates[CurrentPlate], results.plates[i].bestPlate.characters.c_str());
 		CurrentPlate = (CurrentPlate + 1) % NUMBEROFPREVIOUSPLATES;
+		last_point = psi[0];
+		process_count++;
 	}
 }

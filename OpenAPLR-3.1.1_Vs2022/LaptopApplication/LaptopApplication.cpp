@@ -15,10 +15,11 @@ int main()
     client::MainController mc;
     client::UIManager ui;
     client::IOSourceManager io;
-	client::ALPRProcessor alpr(county, "");
+	client::VehicleInfoManager vehicleInfoMng;
+	client::ALPRProcessor alpr(county, "", &vehicleInfoMng);
     client::CommunicationManager commMan;
     client::LoginManager loginMng;
-    client::VehicleInfoManager vehicleInfoMng;
+
     loginMng.linkCommMag(&commMan);
     vehicleInfoMng.linkCommMag(&commMan);
     commMan.networkConnect();
