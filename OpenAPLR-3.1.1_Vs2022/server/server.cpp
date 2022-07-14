@@ -1,10 +1,10 @@
 // server.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-#define SOLRDB
-
 #define NOMINMAX
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+
+#define SOLRDB
 
 #include <iostream>
 #include <string.h>
@@ -20,11 +20,9 @@
 #include <stdio.h>
 #include <thread>
 
-//#include "json.hpp"
 #include "RequestHandler.h"
 
 using namespace std;
-//using json = nlohmann::json;
 
 #ifndef SOLRDB
 
@@ -74,6 +72,7 @@ void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string respo
         lock_guard<mutex> l(send_lock_);
         WriteDataTcp(tcp_connected_port.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
         WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
+        cout << "[sendResponse] " << buf << endl;
     }
 }
 
@@ -138,8 +137,8 @@ int main()
     struct sockaddr_in cli_addr;
     socklen_t          clilen;
     bool NeedStringLength = true;
-    unsigned short PlateStringLength;
-    char PlateString[1024];
+    unsigned short DataStringLength;
+    char DataString[1024];
 #ifndef SOLRDB
     char DBRecord[2048];
     DB* dbp; /* DB structure handle */
@@ -236,7 +235,7 @@ int main()
 
 		for (auto& connected_fd : connected_ports) {
 			if (FD_ISSET(connected_fd->ConnectedFd, &ReadSet)) {
-				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateStringLength, sizeof(PlateStringLength)) != sizeof(PlateStringLength))
+				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&DataStringLength, sizeof(DataStringLength)) != sizeof(DataStringLength))
 				{
 					printf("ReadDataTcp 1 error - close socket\n");
 					closesocket(connected_fd->ConnectedFd);
@@ -244,24 +243,25 @@ int main()
 					connected_ports.erase(connected_fd);
 					break;
 				}
-				PlateStringLength = ntohs(PlateStringLength);
-				if (PlateStringLength > sizeof(PlateString))
+				DataStringLength = ntohs(DataStringLength);
+				if (DataStringLength > sizeof(DataString))
 				{
-					printf("Plate string length error\n");
+					printf("Data string length error\n");
 					continue;
 				}
-				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateString, PlateStringLength) != PlateStringLength)
+				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&DataString, DataStringLength) != DataStringLength)
 				{
 					printf("ReadDataTcp 2 error\n");
 					continue;
 				}
-				printf("Plate is : %s\n", PlateString);
+				printf("Data is : %s\n", DataString);
+
 #ifdef SOLRDB
                 function<void(string)> callback = bind(&sendResponse, connected_fd, placeholders::_1);
                 /* TODO : Test Code for Solr DB */
-                rh.handle(connected_fd->ConnectedFd, PlateString, move(callback));
+                rh.handle(connected_fd->ConnectedFd, DataString, move(callback));
 #else
-				if (partialMatch(dbp, PlateString, DBRecord, sizeof(DBRecord)))
+				if (partialMatch(dbp, DataString, DBRecord, sizeof(DBRecord)))
 				{
 					int sendlength = (int)(strlen((char*)DBRecord) + 1);
 					short SendMsgHdr = ntohs(sendlength);
@@ -286,29 +286,29 @@ int main()
     printf("connected\n");
     while (1)
     {
-        if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&PlateStringLength, sizeof(PlateStringLength)) != sizeof(PlateStringLength))
+        if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&DataStringLength, sizeof(DataStringLength)) != sizeof(DataStringLength))
         {
             printf("ReadDataTcp 1 error\n");
             return(-1);
         }
-        PlateStringLength = ntohs(PlateStringLength);
-        if (PlateStringLength > sizeof(PlateString))
+        DataStringLength = ntohs(DataStringLength);
+        if (DataStringLength > sizeof(DataString))
         {
-            printf("Plate string length  error\n");
+            printf("Data string length  error\n");
             return(-1);
         }
-        if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&PlateString, PlateStringLength) != PlateStringLength)
+        if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&DataString, DataStringLength) != DataStringLength)
         {
             printf("ReadDataTcp 2 error\n");
             return(-1);
         }
-        printf("Plate is : %s\n", PlateString);
+        printf("Data is : %s\n", DataString);
 
         /* Zero out the DBTs before using them. */
         memset(&key, 0, sizeof(DBT));
         memset(&data, 0, sizeof(DBT));
-        key.data = PlateString;
-        key.size = (u_int32_t) (strlen(PlateString)+1);
+        key.data = DataString;
+        key.size = (u_int32_t) (strlen(DataString)+1);
         data.data = DBRecord;
         data.ulen = sizeof(DBRecord);
         data.flags = DB_DBT_USERMEM;

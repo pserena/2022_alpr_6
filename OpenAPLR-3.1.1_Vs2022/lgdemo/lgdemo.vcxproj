@@ -183,7 +183,7 @@
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);WINDOWS;NOMINMAX</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>..\opencv\build\include;..\libs\libopenalpr;%(AdditionalIncludeDirectories);..\OpenCVDeviceEnumerator;..\common</AdditionalIncludeDirectories>
@@ -217,6 +217,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\common\md5.cpp" />
     <ClCompile Include="..\common\NetworkTCP.cpp" />
     <ClCompile Include="..\libs\libopenalpr\statedetection\featurematcher.cpp" />
     <ClCompile Include="..\libs\libopenalpr\statedetection\line_segment.cpp" />
@@ -226,6 +227,7 @@
     <ClCompile Include="lgdemo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\common\md5.h" />
     <ClInclude Include="..\common\NetworkTCP.h" />
     <ClInclude Include="..\OpenCVDeviceEnumerator\DeviceEnumerator.h" />
     <ClInclude Include="json.hpp" />

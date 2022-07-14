@@ -27,6 +27,9 @@
     <ClCompile Include="VehicleInfoFinder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LoginRequestHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\NetworkTCP.h">
@@ -43,6 +46,9 @@
     </ClInclude>
     <ClInclude Include="server.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LoginRequestHandler.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,10 +1,5 @@
 #include "VehicleInfoFinder.h"
 
-#define NOMINMAX
-#define _CRT_SECURE_NO_WARNINGS
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-
-
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -12,22 +7,21 @@
 #include <Windows.h>
 #include <winhttp.h>
 
-#include "json.hpp"
-
 
 #pragma comment(lib, "winhttp.lib")
 
 using namespace std;
-using json = nlohmann::json;
 
-int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output) {
+int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, nlohmann::json& responseJson) {
+
     DWORD dwSize = 0;
     DWORD dwDownloaded = 0;
-    LPSTR pszOutBuffer;
+    LPSTR pszOutBuffer = 0;
     BOOL  bResults = FALSE;
 
+    string output;
     int found = 0;
-    json json_output;
+    //json json_output;
    
     HINTERNET  hSession = NULL;
     HINTERNET  hConnect = NULL;
@@ -46,7 +40,9 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
             8983, 0);
     // below 300 bytes measn no found.
     output.clear();
-    wstring wplate = wstring(plate.begin(), plate.end());
+
+    string plateNumber = requestJson["plate_number"].get<std::string>();
+    wstring wplate = wstring(plateNumber.begin(), plateNumber.end());
 
     vector<wstring> priority = {
         wplate,
@@ -76,7 +72,6 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
                 WINHTTP_NO_ADDITIONAL_HEADERS, 0,
                 WINHTTP_NO_REQUEST_DATA, 0,
                 0, 0);
-
 
         // End the request.
         if (bResults)
@@ -116,10 +111,15 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
                 }
             } while (dwSize > 0);
         }
-        json_output = json::parse(output);
-        found = json_output["response"]["numFound"];
+
+        cout << "[getVehicleInformation] " << output << endl;
+
+        responseJson = json::parse(output.c_str());
+        found = responseJson["response"]["numFound"];
+
         if ( found > 0)
             break;
+
     } while (++cnt < priority.size());
 
     // Report any errors.
@@ -131,7 +131,13 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     if (hConnect) WinHttpCloseHandle(hConnect);
     if (hSession) WinHttpCloseHandle(hSession);
     auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
-    cout << "DB search time : " << search_time << "ms (found :" << found << ") for : " << json_output["responseHeader"]["params"]["q"] << endl;
+    cout << "DB search time : " << search_time << "ms (found :" << found << ") for : " << responseJson["responseHeader"]["params"]["q"] << endl;
+
+    responseJson["request_type"] = requestJson["request_type"];
+    responseJson["plate_number"] = requestJson["plate_number"];
+    responseJson["plate_uid"] = requestJson["plate_uid"];
+    responseJson["response_code"] = 200;
+    responseJson["response_message"] = "query succeed.";
 
     return 0;
 }
