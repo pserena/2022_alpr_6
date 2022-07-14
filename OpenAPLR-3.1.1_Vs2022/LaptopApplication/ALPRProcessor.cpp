@@ -61,7 +61,6 @@ void ALPRProcessor::process(Mat frame)
 			if (process_count == 0 || abs(last_point.x - psi[0].x) > 80)
 			{
 				plate_uid++;
-				plate_changed = true;
 				plate_cropped = frame(rect & totalrect);
 			}
 

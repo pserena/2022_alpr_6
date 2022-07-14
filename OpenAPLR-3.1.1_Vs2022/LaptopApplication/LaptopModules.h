@@ -121,14 +121,12 @@ namespace client
 	public:
 		ALPRProcessor(std::string str1, std::string str2, VehicleInfoManager *vim) : Alpr(str1, str2) {
 			plate_uid = 0;
-			plate_changed = true;
 			viManager = vim;
 		}
 		virtual ~ALPRProcessor() {}
 		void process(Mat frame);
 	private:
 		int plate_uid;
-		bool plate_changed;
 		VehicleInfoManager* viManager;
 	};
 
