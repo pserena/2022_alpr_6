@@ -31,7 +31,9 @@ public:
 private:
 	string GetLoginAccount(UINT_PTR id) {
 		if (SessionLoginAccounts.find(id) != SessionLoginAccounts.end())
+		{
 			return SessionLoginAccounts[id];
+		}			
 
 		return 0;
 	}
