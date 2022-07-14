@@ -16,6 +16,7 @@
 #include "alpr.h"
 #include "DeviceEnumerator.h"
 #include "json.hpp"
+#include "md5.h"
 
 using namespace alpr;
 using namespace std;
@@ -280,7 +281,7 @@ int main()
         }
 
         if (mode == Mode::mLogin) {
-            continue;
+            cout << "md5 of login. Example: 'grape': " << md5("grape") << endl;
         }
         else if (mode == Mode::mLogout) {
             continue;

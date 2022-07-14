@@ -32,7 +32,6 @@ void ALPRProcessor::process(Mat *frame)
 		sprintf_s(textbuffer, "%s - %.2f", results.plates[i].bestPlate.characters.c_str(),
 			results.plates[i].bestPlate.overall_confidence);
 
-		
 		cv::putText(*frame, textbuffer,
 			cv::Point(rect.x, rect.y - 5), //top-left position
 			FONT_HERSHEY_COMPLEX_SMALL, 1,

@@ -117,10 +117,11 @@ void IOSourceManager::process(Mode mode, function<void(Mat*)> alpr_process)
 		// Write the frame into the file 'output.avi'
 		if (videosavemode != VideoSaveMode::vNoSave)
 		{
-			// TODO: push to queue and 25 fps handling
-			outv.write(frame);
+			thread output_saver(&IOSourceManager::SaveOutputVideo, this, frame);
+			output_saver.detach();
 		}
 
+		// TODO: push to queue and 25 fps handling
 		// Display the resulting frame
 		imshow("Frame", frame);
 		// Press  ESC on keyboard to  exit
@@ -131,6 +132,11 @@ void IOSourceManager::process(Mode mode, function<void(Mat*)> alpr_process)
 		double dur = CLOCK() - start;
 		sprintf_s(text, "avg time per frame %f ms. fps %f. frameno = %d", avgdur(dur), avgfps(), frameno++);
 	}
+}
+
+void IOSourceManager::SaveOutputVideo(Mat frame)
+{
+	outv.write(frame);
 }
 
 void IOSourceManager::ClossAll(void)
