@@ -218,6 +218,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\common\AesManager.cpp" />
     <ClCompile Include="..\common\NetworkTCP.cpp" />
     <ClCompile Include="LoginRequestHandler.cpp" />
     <ClCompile Include="RequestHandler.cpp" />
@@ -225,6 +226,7 @@
     <ClCompile Include="VehicleInfoFinder.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\common\AesManager.h" />
     <ClInclude Include="..\common\NetworkTCP.h" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="LoginRequestHandler.h" />
