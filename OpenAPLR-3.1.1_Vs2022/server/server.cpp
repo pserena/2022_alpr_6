@@ -15,6 +15,7 @@
 #endif
 #include <unordered_set>
 #include <memory>
+#include <mutex>
 
 #include <stdio.h>
 #include <thread>
@@ -62,14 +63,18 @@ bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
 #endif
 
 
+mutex send_lock_;
 void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string response) {
     char buf[8192];
     size_t SendMsgHdr = ntohs(response.length());
     strcpy_s(buf, response.c_str());
     cout << "--------- length : " << response.length() << "----------" << endl;
     //cout << response << endl;
-    WriteDataTcp(tcp_connected_port.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
-    WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
+    {
+        lock_guard<mutex> l(send_lock_);
+        WriteDataTcp(tcp_connected_port.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
+        WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
+    }
 }
 
 #if 0

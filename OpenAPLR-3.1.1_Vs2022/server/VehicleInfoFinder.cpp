@@ -44,35 +44,28 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
     if (hSession)
         hConnect = WinHttpConnect(hSession, L"127.0.0.1",
             8983, 0);
-    int priority = 0;
     // below 300 bytes measn no found.
     output.clear();
+    wstring wplate = wstring(plate.begin(), plate.end());
+
+    vector<wstring> priority = {
+        wplate,
+        wplate + L"?",
+        L"?" + wplate,
+        wplate + L"~1",
+        //wplate + L"~2",
+    };
+    wstring url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:";
+    int cnt = 0;
 
     do {
-        wstring url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:";
-        switch (priority) {
-        case 0:
-            url += wstring(plate.begin(), plate.end());
-            break;
-        case 1:
-            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end()) + L"?";
-            break;
-        case 2:
-            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:?" + wstring(plate.begin(), plate.end());
-            break;
-        case 3:
-            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end()) + L"~1";
-            break;
-        case 4:
-        default:
-            url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:" + wstring(plate.begin(), plate.end()) + L"~2";
-            break;
-        }
+        wstring query_string = url + priority[cnt];
+   
         output.clear();
 
         // Create an HTTP request handle.
         if (hConnect)
-            hRequest = WinHttpOpenRequest(hConnect, L"GET", url.c_str(),
+            hRequest = WinHttpOpenRequest(hConnect, L"GET", query_string.c_str(),
                 NULL, WINHTTP_NO_REFERER,
                 WINHTTP_DEFAULT_ACCEPT_TYPES,
                 0);
@@ -127,7 +120,7 @@ int VehicleInfoFinder::getVehicleInformation(const string& plate, string& output
         found = json_output["response"]["numFound"];
         if ( found > 0)
             break;
-    } while (++priority < 5);
+    } while (++cnt < priority.size());
 
     // Report any errors.
     if (!bResults)
