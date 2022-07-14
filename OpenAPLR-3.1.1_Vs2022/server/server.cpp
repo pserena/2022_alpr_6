@@ -21,6 +21,7 @@
 #include <thread>
 
 #include "RequestHandler.h"
+#include "AesManager.h"
 
 using namespace std;
 
