@@ -11,9 +11,9 @@
 using namespace std;
 using json = nlohmann::json;
 
-class VehicleInfoFinder final {
+class LoginRequestHandler final {
 public:
-	VehicleInfoFinder() = default;
-	~VehicleInfoFinder() = default;
-	int getVehicleInformation(const nlohmann::json& requestJson, nlohmann::json& responseJson);
+	LoginRequestHandler() = default;
+	~LoginRequestHandler() = default;
+	int login(const nlohmann::json& requestJson, nlohmann::json& responseJson);
 };

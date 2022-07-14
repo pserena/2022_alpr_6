@@ -1,5 +1,6 @@
 // lgdemo.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
+
 #include "NetworkTCP.h"
 #include <windows.h>
 #include <map>
@@ -7,6 +8,7 @@
 #include <stdlib.h>
 #include <tchar.h>
 #include <fstream>
+#include <cstring>
 
 #include "opencv2/opencv.hpp"
 #include "support/timing.h"
@@ -74,61 +76,163 @@ static void GetResponses(void);
 /* Main                                                                            */
 /***********************************************************************************/
 
-void TestJson()
+void TestJson(string &message)
 {
-    return;
+    unsigned short SendPlateStringLength;
+    unsigned short SendMsgHdr;
+    ssize_t result;
+    
+    SendPlateStringLength = (unsigned short)strlen(message.c_str()) + 1;
+    SendMsgHdr = htons(SendPlateStringLength);
+    if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendPlateStringLength))
+        cout << "WriteDataTcp " << result << endl;
+    if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)message.c_str(), SendPlateStringLength)) != SendPlateStringLength)
+        cout << "WriteDataTcp " << result << endl;
+    cout << "sent ->" << message.c_str() << endl;
 
-    json j;
-    j["pi"] = 3.141;
-    j["happy"] = true;
-    j["name"] = "Niels";
-    j["nothing"] = nullptr;
-    j["answer"]["everything"] = 42;
-    j["list"] = { 1, 0, 2 };
-    j["object"] = { {"currency", "USD"}, {"value", 42.99} };
-    cout << j << endl;
-
-    json j2 = {
-      {"pi", 3.141},
-      {"happy", true},
-      {"name", "Niels"},
-      {"nothing", nullptr},
-      {"answer", {
-        {"everything", 42}
-      }},
-      {"list", {1, 0, 2}},
-      {"object", {
-        {"currency", "USD"},
-        {"value", 42.99}
-      }}
-    };
-
-    cout << j2 << endl;
-
-    cout << "!!!!!!!!" << j2["name"] << endl;
-
-    assert(j == j2);
-
-    json j11 = "{ \"happy\": true, \"pi\": 3.141 }"_json;
-    auto j12 = R"(
+    bool readDone = FALSE;
+    while (!readDone)
+    {
+        ssize_t BytesRead;
+        ssize_t BytesOnSocket = 0;
+        while ((BytesOnSocket = BytesAvailableTcp(TcpConnectedPort)) > 0)
         {
-            "happy": true,
-            "pi": 3.141
+            if (BytesOnSocket < 0) return;
+            if (BytesOnSocket > BytesNeeded) BytesOnSocket = BytesNeeded;
+            ZeroMemory(&ResponseBuffer, sizeof(ResponseBuffer));
+            BytesRead = ReadDataTcp(TcpConnectedPort, (unsigned char*)&ResponseBuffer[BytesInResponseBuffer], BytesOnSocket);
+            if (BytesRead <= 0)
+            {
+                printf("Read Response Error - Closing Socket\n");
+                CloseTcpConnectedPort(&TcpConnectedPort);
+            }
+            BytesInResponseBuffer += BytesRead;
+
+            if (BytesInResponseBuffer == BytesNeeded)
+            {
+                if (GetResponseMode == ResponseMode::ReadingHeader)
+                {
+                    memcpy(&RespHdrNumBytes, ResponseBuffer, sizeof(RespHdrNumBytes));
+                    RespHdrNumBytes = ntohs(RespHdrNumBytes);
+                    GetResponseMode = ResponseMode::ReadingMsg;
+                    BytesNeeded = RespHdrNumBytes;
+                    BytesInResponseBuffer = 0;
+                    cout << "---Size : " << BytesNeeded << endl;
+                }
+                else if (GetResponseMode == ResponseMode::ReadingMsg)
+                {
+                    printf("Response %s\n", ResponseBuffer);
+
+                    json responseJson = json::parse(ResponseBuffer);
+                    if (responseJson["request_type"] == "query")
+                    {
+                        string q = responseJson["responseHeader"]["params"]["q"].get<std::string>();
+                        cout << "[TestJson] query stirng: " << q << endl;
+
+                        json docs = responseJson["response"]["docs"];
+                        cout << "[TestJson] size of plate info: " << docs.size() << endl;
+
+                        for (auto i = 0; i< docs.size(); ++i)
+                        {
+                            cout << "[TestJson] " << i << ": " << "plate_number: " << docs.at(i)["plate_number"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "status: " << docs.at(i)["status"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "reg_expiration: " << docs.at(i)["reg_expiration"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "owner_name: " << docs.at(i)["owner_name"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "owner_birthdate: " << docs.at(i)["owner_birthdate"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "owner_address_1: " << docs.at(i)["owner_address_1"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "owner_address_2: " << docs.at(i)["owner_address_2"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "vehicle_year: " << docs.at(i)["vehicle_year"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "vehicle_make: " << docs.at(i)["vehicle_make"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "vehicle_model: " << docs.at(i)["vehicle_model"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "vehicle_color: " << docs.at(i)["vehicle_color"].at(0) << endl;
+                        }
+                    }
+
+                    GetResponseMode = ResponseMode::ReadingHeader;
+                    BytesInResponseBuffer = 0;
+                    BytesNeeded = sizeof(RespHdrNumBytes);
+
+                    readDone = TRUE;
+                    break;
+                }
+            }
+        }
+
+        if (BytesOnSocket < 0)
+        {
+            printf("Read Response Error - Closing Socket\n");
+            CloseTcpConnectedPort(&TcpConnectedPort);
+        }
+
+        if (readDone)
+        {
+            break;
+        }
+        Sleep(5000);
+
+    }
+
+    return;
+}
+
+void TestJsonDataFormat()
+{
+    while (TRUE)
+    {
+        if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL)
+        {
+            std::cout << "Connection Failed. Retry..." << std::endl;
+            //return(-1);
+            Sleep(5000);
+        }
+        else
+        {
+            std::cout << "Connected" << std::endl;
+            break;
+        }
+    }
+
+    auto jsonMessageLogin = R"(
+        {
+            "request_type": "login",
+            "user_id" : "daniel",
+            "user_password" : "1qaz2wsx"
         }
     )"_json;
-    auto j13 = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
+    /*
+    auto jsonMessageLogin = R"(
+        {
+            "request_type": "login",
+            "user_id" : "daniel",
+            "user_password" : "1qaz2wsxaa"
+        }
+    )"_json;
+    */
 
-    assert(j11 == j12 && j == j13);
+    string messageLogin = jsonMessageLogin.dump();
 
-    string s = j.dump();
-    cout << "serialization: " << s << endl;
+    TestJson(messageLogin);
 
-    cout << "serialization with pretty printing: " << j.dump(4) << endl;
+    auto jsonMessage = R"(
+            {
+                "request_type": "query",
+                "plate_number" : "ABC123",
+                "plate_uid" : 111
+            }
+        )"_json;
+
+    string message = jsonMessage.dump();
+
+    while (TRUE) {
+        TestJson(message);
+        Sleep(5000);
+    }
 }
 
 int main()
 {
-    TestJson();
+//    TestJsonDataFormat();
+//    return 0;
 
     Mode mode;
     VideoSaveMode videosavemode;
