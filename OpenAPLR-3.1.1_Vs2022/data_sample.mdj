@@ -129,7 +129,7 @@
 													"visible": false,
 													"font": "Arial;13;0",
 													"left": -80,
-													"width": 106.20263671875,
+													"width": 110.24609375,
 													"height": 13,
 													"text": "(from Interaction1)"
 												},
@@ -245,7 +245,7 @@
 													"visible": false,
 													"font": "Arial;13;0",
 													"left": -144,
-													"width": 106.20263671875,
+													"width": 110.24609375,
 													"height": 13,
 													"text": "(from Interaction1)"
 												},
@@ -293,14 +293,14 @@
 											"left": 88,
 											"top": 105,
 											"width": 1,
-											"height": 34
+											"height": 43
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 32,
 									"top": 40,
 									"width": 111.8544921875,
-									"height": 99,
+									"height": 108,
 									"stereotypeDisplay": "icon",
 									"nameCompartment": {
 										"$ref": "AAAAAAGB9p4qZyCaKlw="
@@ -362,7 +362,7 @@
 													"visible": false,
 													"font": "Arial;13;0",
 													"left": 64,
-													"width": 106.20263671875,
+													"width": 110.24609375,
 													"height": 13,
 													"text": "(from Interaction1)"
 												},
@@ -695,7 +695,7 @@
 											"font": "Arial;13;0",
 											"left": 358,
 											"top": 284,
-											"width": 18.0654296875,
+											"width": 19.14453125,
 											"height": 13,
 											"alpha": 1.5707963267948966,
 											"distance": 10,
@@ -931,7 +931,7 @@
 											"font": "Arial;13;0",
 											"left": 358,
 											"top": 760,
-											"width": 18.0654296875,
+											"width": 19.14453125,
 											"height": 13,
 											"alpha": 1.5707963267948966,
 											"distance": 10,
@@ -1164,7 +1164,8 @@
 					"_parent": {
 						"$ref": "AAAAAAGB9p168iBhNYc="
 					},
-					"name": "Role1"
+					"name": "Role1",
+					"type": ""
 				},
 				{
 					"_type": "UMLAttribute",
@@ -1183,7 +1184,8 @@
 					"_parent": {
 						"$ref": "AAAAAAGB9p168iBhNYc="
 					},
-					"name": "Role3"
+					"name": "Role3",
+					"type": ""
 				}
 			]
 		}
