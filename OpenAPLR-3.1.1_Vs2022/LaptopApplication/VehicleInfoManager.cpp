@@ -26,3 +26,10 @@ int VehicleInfoManager::receiveCommunicationData(char* vehicleData) {
 
 	return 0;
 }
+
+int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
+{
+	printf("rs:%s puid:%d\n", rs, puid);
+
+	return 0;
+}

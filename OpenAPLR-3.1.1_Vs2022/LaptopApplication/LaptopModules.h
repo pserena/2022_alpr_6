@@ -73,7 +73,7 @@ namespace client
 		}
 		bool OpenInputVideo(Mode mode, VideoResolution vres, int dev_id, char filename[MAX_PATH]);
 		bool OpenOutputVideo(void);
-		void process(Mode mode, function<void(Mat*)> alpr_process);
+		void process(Mode mode, function<void(Mat)> alpr_process);
 		void SaveOutputVideo(Mat frame);
 		void ClossAll(void);
 	
@@ -88,13 +88,6 @@ namespace client
 		int GetInputVideoProp(int id) {
 			return (int)cap.get(id);
 		}
-	};
-
-	class ALPRProcessor : public Alpr {
-	public:
-		ALPRProcessor(std::string str1, std::string str2) : Alpr(str1, str2) {}
-		void process(Mat *frame);
-	private:
 	};
 
 	class CommunicationManager {
@@ -119,8 +112,22 @@ namespace client
 		int linkCommMag(CommunicationManager* comMan);
 		int sendVehicleInfo(unsigned char* vehicleData);
 		int receiveCommunicationData(char* vehicleData);
+		int setRecognizedInfo(string rs, int puid, Mat pimg);
 	private:
 		CommunicationManager* commMan;
+	};
+
+	class ALPRProcessor : public Alpr {
+	public:
+		ALPRProcessor(std::string str1, std::string str2, VehicleInfoManager *vim) : Alpr(str1, str2) {
+			plate_uid = 0;
+			viManager = vim;
+		}
+		virtual ~ALPRProcessor() {}
+		void process(Mat frame);
+	private:
+		int plate_uid;
+		VehicleInfoManager* viManager;
 	};
 
 	class LoginManager {

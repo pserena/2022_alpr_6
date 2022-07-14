@@ -85,7 +85,7 @@ bool IOSourceManager::OpenOutputVideo(void)
 	return outv.isOpened();
 }
 
-void IOSourceManager::process(Mode mode, function<void(Mat*)> alpr_process)
+void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 {
 	char text[1024] = "";
 
@@ -106,7 +106,7 @@ void IOSourceManager::process(Mode mode, function<void(Mat*)> alpr_process)
 
 		if (videosavemode != VideoSaveMode::vSaveWithNoALPR)
 		{
-			alpr_process(&frame);
+			alpr_process(frame);
 
 			cv::putText(frame, text,
 				cv::Point(10, frame.rows - 10), //top-left position
