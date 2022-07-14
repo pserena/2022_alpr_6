@@ -40,25 +40,72 @@ Mode UIManager::GetVideoMode(void)
     Mode mode = Mode::mNone;
     do
     {
-        std::cout << "Select Live Video, PlayBack File or Image File" << std::endl;
-        std::cout << "1 - Login" << std::endl;
-        std::cout << "2 - Logout" << std::endl;
-        std::cout << "3 - PlayBack File" << std::endl;
-        std::cout << "4 - Image File" << std::endl;
-        std::cout << "5 - Test Connection" << std::endl;
+        std::cout << "Select PlayBack File, Live Video or Image File" << std::endl;
+        std::cout << "1 - PlayBack File" << std::endl;
+        std::cout << "2 - Live Video" << std::endl;
+        std::cout << "3 - Image File" << std::endl;
         std::cout << "E - Exit" << std::endl;
 
         getconchar(key);
         std::cout << key.uChar.AsciiChar << std::endl;
         if ((key.uChar.AsciiChar == 'E') || (key.uChar.AsciiChar == 'e')) break;
-        else if (key.uChar.AsciiChar == '1') mode = Mode::mLogin;
-        else if (key.uChar.AsciiChar == '2') mode = Mode::mLogout;
-        else if (key.uChar.AsciiChar == '3') mode = Mode::mPlayback_Video;
-        else if (key.uChar.AsciiChar == '4') mode = Mode::mImage_File;
-        else if (key.uChar.AsciiChar == '5') mode = Mode::mTest_Connection;
+        else if (key.uChar.AsciiChar == '1') mode = Mode::mPlayback_Video;
+        else if (key.uChar.AsciiChar == '2') mode = Mode::mLive_Video;
+        else if (key.uChar.AsciiChar == '3') mode = Mode::mImage_File;
         else std::cout << "Invalid Input" << std::endl << std::endl;
     } while (mode == Mode::mNone);
     return(mode);
+}
+
+int UIManager::GetVideoDevice(void)
+{
+    int deviceID = -1;
+    KEY_EVENT_RECORD key;
+    int numdev;
+    DeviceEnumerator de;
+    std::map<int, Device> devices = de.getVideoDevicesMap();
+
+    int* deviceid = new int[devices.size()];
+    do {
+        numdev = 0;
+        std::cout << "Select video Device" << std::endl;
+        for (auto const& device : devices)
+        {
+            deviceid[numdev] = device.first;
+            std::cout << numdev + 1 << " - " << device.second.deviceName << std::endl;
+            numdev++;
+        }
+        std::cout << "E - exit" << std::endl;
+        getconchar(key);
+        if ((key.uChar.AsciiChar == 'E') || (key.uChar.AsciiChar == 'e')) break;
+        int value = static_cast<int>(key.uChar.AsciiChar) - 48;
+        if ((value >= 1) && value <= numdev) deviceID = deviceid[value - 1];
+        else std::cout << "Invalid Input" << std::endl << std::endl;
+    } while (deviceID == -1);
+    delete[] deviceid;
+    return(deviceID);
+}
+
+VideoResolution UIManager::GetVideoResolution(void)
+{
+    VideoResolution vres = VideoResolution::rNone;
+    KEY_EVENT_RECORD key;
+    do
+    {
+        std::cout << "Select Video Resolution" << std::endl;
+        std::cout << "1 - 640 x 480" << std::endl;
+        std::cout << "2 - 1280 x 720" << std::endl;
+        std::cout << "E - Exit" << std::endl;
+
+        getconchar(key);
+        std::cout << key.uChar.AsciiChar << std::endl;
+        if ((key.uChar.AsciiChar == 'E') || (key.uChar.AsciiChar == 'e')) break;
+        else if (key.uChar.AsciiChar == '1') vres = VideoResolution::r640X480;
+        else if (key.uChar.AsciiChar == '2') vres = VideoResolution::r1280X720;
+        else std::cout << "Invalid Input" << std::endl << std::endl;
+    } while (vres == VideoResolution::rNone);
+
+    return(vres);
 }
 
 bool UIManager::GetFileName(Mode mode, char filename[MAX_PATH])
@@ -111,7 +158,7 @@ bool UIManager::GetFileName(Mode mode, char filename[MAX_PATH])
     }
     SetCurrentDirectory(CWD);
 
-    if (retval) std::cout << "Filename is" << filename << std::endl;
+    if (retval) std::cout << "Filename is " << filename << std::endl;
     return(retval);
 }
 

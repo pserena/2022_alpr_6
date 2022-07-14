@@ -30,7 +30,7 @@ int LoginManager::login(void) {
 }
 
 int LoginManager::logout(void) {
-	commMan->networkConnectColse();
+	commMan->networkConnectClose();
 
 	return 0;
 }

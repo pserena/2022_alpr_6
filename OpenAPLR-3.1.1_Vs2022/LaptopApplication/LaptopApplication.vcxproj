@@ -213,6 +213,8 @@
     <ClCompile Include="LoginManager.cpp" />
     <ClCompile Include="UIManager.cpp" />
     <ClCompile Include="VehicleInfoManager.cpp" />
+    <ClCompile Include="IOSourceManager.cpp" />
+    <ClCompile Include="ALPRProcessor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\NetworkTCP.h" />

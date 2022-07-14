@@ -4,33 +4,52 @@
 
 #include <windows.h>
 #include <opencv2/highgui.hpp>
+#include <functional>
+#include <map>
 
 #include "alpr.h"
 
+using namespace std;
 using namespace cv;
 using namespace alpr;
-using namespace std;
 
 namespace client
 {
-	enum class Mode { mNone, mLogin, mLogout, mPlayback_Video, mImage_File, mTest_Connection };
+	enum class Mode { mNone, mPlayback_Video, mLive_Video, mImage_File };
+	enum class VideoResolution { rNone, r640X480, r1280X720 };
 	enum class VideoSaveMode { vNone, vNoSave, vSave, vSaveWithNoALPR };
 	enum class ResponseMode { ReadingHeader, ReadingMsg };
 
 	class MainController {
 	public:
 		Mode mode;
+		int dev_id;
+		VideoResolution vres;
 		char inputfilename[MAX_PATH];
+
+		MainController(void) {
+			mode = Mode::mNone;
+			dev_id = -1;
+			vres = VideoResolution::rNone;
+			memset(inputfilename, 0, MAX_PATH);
+		}
+		virtual ~MainController(void) { }
 	private:
 	};
 
 	class UIManager {
 	public:
 		Mode GetVideoMode(void);
+		int GetVideoDevice(void);
+		VideoResolution GetVideoResolution(void);
 		bool GetFileName(Mode mode, char filename[MAX_PATH]);
 		VideoSaveMode GetVideoSaveMode(void);
 		void PrintErrMsg(std::string msg);
 
+		UIManager(void) {
+		}
+		virtual ~UIManager(void) {
+		}
 		void destroyAll(void) {
 			destroyAllWindows();
 		}
@@ -40,28 +59,32 @@ namespace client
 	class IOSourceManager {
 
 	public:
+		VideoSaveMode videosavemode;
+
+		IOSourceManager(void) {
+			videosavemode = VideoSaveMode::vNone;
+			frameno = 0;
+			frame_width = 0;
+			frame_height = 0;
+			memset(inputfile, 0, MAX_PATH);
+		}
+		virtual ~IOSourceManager(void) {
+
+		}
+		bool OpenInputVideo(Mode mode, VideoResolution vres, int dev_id, char filename[MAX_PATH]);
+		bool OpenOutputVideo(void);
+		void process(Mode mode, function<void(Mat*)> alpr_process);
+		void SaveOutputVideo(Mat frame);
+		void ClossAll(void);
+	
+	private:
+		int frameno;
 		int frame_width;
 		int frame_height;
 		VideoCapture cap;
-		VideoSaveMode videosavemode;
 		VideoWriter outv;
+		char inputfile[MAX_PATH];
 
-		bool OpenInputVideo(char filename[MAX_PATH]) {
-			cap.open(filename);
-			if (cap.isOpened()) {
-				// Default resolutions of the frame are obtained.The default resolutions are system dependent.
-				frame_width = GetInputVideoProp(cv::CAP_PROP_FRAME_WIDTH);
-				frame_height = GetInputVideoProp(cv::CAP_PROP_FRAME_HEIGHT);
-				printf("Frame width= %d height=%d\n", frame_width, frame_height);
-			}
-			return cap.isOpened();
-		}
-		bool OpenOutputVideo(void) {
-			outv.open("output.avi", VideoWriter::fourcc('M', 'J', 'P', 'G'), 25, Size(frame_width, frame_height), true);
-			return outv.isOpened();
-		}
-	
-	private:
 		int GetInputVideoProp(int id) {
 			return (int)cap.get(id);
 		}
@@ -70,6 +93,7 @@ namespace client
 	class ALPRProcessor : public Alpr {
 	public:
 		ALPRProcessor(std::string str1, std::string str2) : Alpr(str1, str2) {}
+		void process(Mat *frame);
 	private:
 	};
 
@@ -79,7 +103,7 @@ namespace client
 		virtual ~CommunicationManager();
 
 		int networkConnect(void);
-		int networkConnectColse(void);
+		int networkConnectClose(void);
 		int retryNetworkConnect(void);
 		int sendCommunicationData(unsigned char* data);
 		int receiveCommunicationData(char* data);
@@ -110,5 +134,4 @@ namespace client
 	private:
 		CommunicationManager* commMan;
 	};
-
 }
