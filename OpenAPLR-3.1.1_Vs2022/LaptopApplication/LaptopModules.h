@@ -101,6 +101,7 @@ namespace client
 		int sendCommunicationData(unsigned char* data);
 		int receiveCommunicationData(char* data);
 		int authenticate(string strID, string strPw);
+		int sendRecognizedInfo(string rs, int puid);
 	private:
 	};
 
@@ -110,11 +111,14 @@ namespace client
 		virtual ~VehicleInfoManager();
 
 		int linkCommMag(CommunicationManager* comMan);
+		int VehicleInfoReceiveStart(void);
 		int sendVehicleInfo(unsigned char* vehicleData);
-		int receiveCommunicationData(char* vehicleData);
+		int receiveCommunicationData(void);
 		int setRecognizedInfo(string rs, int puid, Mat pimg);
 	private:
 		CommunicationManager* commMan;
+		void recevieThreadStart(void);
+		void timer_start(std::function<void(VehicleInfoManager*)> func, unsigned int interval);
 	};
 
 	class ALPRProcessor : public Alpr {

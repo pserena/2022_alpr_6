@@ -67,71 +67,18 @@ void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string respo
     char buf[8192];
     size_t SendMsgHdr = ntohs(response.length());
     strcpy_s(buf, response.c_str());
-    cout << "--------- length : " << response.length() << "----------" << endl;
+    //cout << "--------- length : " << response.length() << "----------" << endl;
     //cout << response << endl;
     {
         lock_guard<mutex> l(send_lock_);
         WriteDataTcp(tcp_connected_port.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
         WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
-        cout << "[sendResponse] " << buf << endl;
+        //cout << "[sendResponse] " << buf << endl;
     }
 }
 
-#if 0
-void TestJson()
-{
-    json j;
-    j["pi"] = 3.141;
-    j["happy"] = true;
-    j["name"] = "Niels";
-    j["nothing"] = nullptr;
-    j["answer"]["everything"] = 42;
-    j["list"] = { 1, 0, 2 };
-    j["object"] = { {"currency", "USD"}, {"value", 42.99} };
-    cout << j << endl;
-
-    json j2 = {
-      {"pi", 3.141},
-      {"happy", true},
-      {"name", "Niels"},
-      {"nothing", nullptr},
-      {"answer", {
-        {"everything", 42}
-      }},
-      {"list", {1, 0, 2}},
-      {"object", {
-        {"currency", "USD"},
-        {"value", 42.99}
-      }}
-    };
-
-    cout << j2 << endl;
-
-    cout << "!!!!!!!!" << j2["name"] << endl;
-
-    assert(j == j2);
-
-    json j11 = "{ \"happy\": true, \"pi\": 3.141 }"_json;
-    auto j12 = R"(
-        {
-            "happy": true,
-            "pi": 3.141
-        }
-    )"_json;
-    auto j13 = json::parse("{ \"happy\": true, \"pi\": 3.141 }");
-
-    assert(j11 == j12 && j == j13);
-
-    string s = j.dump();
-    cout << "serialization: " << s << endl;
-
-    cout << "serialization with pretty printing: " << j.dump(4) << endl;
-}
-#endif
 int main()
 {
-    //TestJson();
-
     TTcpListenPort* TcpListenPort;
     TTcpConnectedPort* TcpConnectedPort;
     unordered_set<shared_ptr<TTcpConnectedPort>> connected_ports;
@@ -139,7 +86,7 @@ int main()
     socklen_t          clilen;
     bool NeedStringLength = true;
     unsigned short DataStringLength;
-    char DataString[1024];
+    char DataString[4096];
 #ifndef SOLRDB
     char DBRecord[2048];
     DB* dbp; /* DB structure handle */
@@ -177,7 +124,7 @@ int main()
     }
 #endif
 
-    std::cout << "Listening\n";
+    std::cout << "Start Server" << endl;
     if ((TcpListenPort = OpenTcpListenPort(2222)) == NULL)  // Open UDP Network port
     {
         std::cout << "OpenTcpListenPortFailed\n";
@@ -203,7 +150,7 @@ int main()
             nfsd = max(nfsd, static_cast<int>(connected_fd->ConnectedFd));
         }
 
-        printf("Trying select\n");
+        //printf("Trying select\n");
 
         //if (Total = select(nfsd + 1, &ReadSet, NULL, NULL, &timeout) == SOCKET_ERROR)
         /* No use timeout */
@@ -214,7 +161,7 @@ int main()
         }
         else
         {
-            printf("select is OK : Total : %d\n", Total);
+            //printf("select is OK : Total : %d\n", Total);
         }
 
         if (FD_ISSET(TcpListenPort->ListenFd, &ReadSet)) {
@@ -245,6 +192,7 @@ int main()
 					break;
 				}
 				DataStringLength = ntohs(DataStringLength);
+                cout << "DataStringLength : " << DataStringLength << endl;
 				if (DataStringLength > sizeof(DataString))
 				{
 					printf("Data string length error\n");
@@ -255,7 +203,7 @@ int main()
 					printf("ReadDataTcp 2 error\n");
 					continue;
 				}
-				printf("Data is : %s\n", DataString);
+				//printf("Data is : %s\n", DataString);
 
 #ifdef SOLRDB
                 function<void(string)> callback = bind(&sendResponse, connected_fd, placeholders::_1);

@@ -27,6 +27,8 @@ int main()
 	if (loginMng.login())
 		exit(1);
 
+	vehicleInfoMng.VehicleInfoReceiveStart();
+
 	mc.mode = ui.GetVideoMode();
 	if (mc.mode == Mode::mNone)
 		exit(0);

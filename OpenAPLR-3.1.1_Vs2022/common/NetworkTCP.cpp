@@ -86,8 +86,7 @@ TTcpListenPort *OpenTcpListenPort(short localport)
       perror("ioctlsocket() failed with error");
       return(NULL);
   }
-  else
-      printf("ioctlsocket() is OK!\n");
+  
   return(TcpListenPort);
 }
 //-----------------------------------------------------------------
