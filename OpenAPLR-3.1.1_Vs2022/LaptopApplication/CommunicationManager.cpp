@@ -14,6 +14,9 @@ size_t RespHdrNumBytes;
 unsigned int BytesInResponseBuffer = 0;
 ssize_t BytesNeeded = sizeof(RespHdrNumBytes);
 
+static string userID = "";
+static string userPass = "";
+
 CommunicationManager::CommunicationManager(void)
 {
     //networkConnect();
@@ -24,6 +27,7 @@ CommunicationManager::~CommunicationManager(void)
 
 int CommunicationManager::networkConnect(void) {
     if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL) {
+    //if ((TcpConnectedPort = OpenTcpConnection("192.168.0.100", "2222")) == NULL) {
         std::cout << "Connection Failed" << std::endl;
         return (-1);
     } else
@@ -39,6 +43,9 @@ int CommunicationManager::networkConnectClose(void) {
 int CommunicationManager::retryNetworkConnect(void) {
     //networkConnectClose();
     networkConnect();
+    if (!userID.empty()) {
+        authenticate(userID, userPass);
+    }
     return 0;
 }
 
@@ -47,10 +54,15 @@ int CommunicationManager::sendCommunicationData(unsigned char* data) {
     unsigned short SendMsgHdr, SendPlateStringLength;
     SendPlateStringLength = (unsigned short)strlen((char*)data) + 1;
     SendMsgHdr = htons(SendPlateStringLength);
-    if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendPlateStringLength))
+    if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) == sizeof(SendPlateStringLength)) {
+        if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)data, SendPlateStringLength)) != SendPlateStringLength) {
+            printf("WriteDataTcp %d\n", result);
+            retryNetworkConnect();
+        }
+    } else {
         printf("WriteDataTcp %d\n", result);
-    if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)data, SendPlateStringLength)) != SendPlateStringLength)
-        printf("WriteDataTcp %d\n", result);
+        retryNetworkConnect();
+    }
     printf("sent ->%s\n", data);
     return 0;
 }
@@ -112,6 +124,10 @@ static int GetResponses(char* data)
 }
 
 int CommunicationManager::authenticate(string strID, string strPw) {
+    if (!strID.empty()) {
+        userID = strID;
+        userPass = strPw;
+    }
     auto jsonMessageLogin = R"(
         {
             "request_type": "login"
@@ -120,8 +136,8 @@ int CommunicationManager::authenticate(string strID, string strPw) {
     jsonMessageLogin["user_id"] = "daniel";//strID.c_str();
     jsonMessageLogin["user_password"] = "1qaz2wsx";// strPw.c_str();
     string messageLogin = jsonMessageLogin.dump();
-    printf("Response %s\n", messageLogin.c_str());
-    sendCommunicationData((unsigned char* )messageLogin.c_str());
+    printf("sendAuthenticate %s\n", messageLogin.c_str());
+    //sendCommunicationData((unsigned char* )messageLogin.c_str());
 
 	return 0;
 }
@@ -135,7 +151,7 @@ int CommunicationManager::sendRecognizedInfo(string rs, int puid) {
     jsonMessage["plate_number"] = rs.c_str();
     jsonMessage["plate_uid"] = to_string(puid);
     string messageRecognized = jsonMessage.dump();
-    printf("Response %s\n", messageRecognized.c_str());
+    printf("sendRecognizedInfo %s\n", messageRecognized.c_str());
     sendCommunicationData((unsigned char*)messageRecognized.c_str());
 
     return 0;

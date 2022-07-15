@@ -49,7 +49,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 void VehicleInfoManager::recevieThreadStart(void) {
 	static bool startThread = false;
 	if (!startThread) {
-		timer_start(receiveThread, 20);
+		timer_start(receiveThread, 100);
 		startThread = true;
 	}
 }
