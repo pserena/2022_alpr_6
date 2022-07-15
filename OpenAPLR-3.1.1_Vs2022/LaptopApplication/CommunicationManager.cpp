@@ -137,7 +137,7 @@ int CommunicationManager::authenticate(string strID, string strPw) {
     jsonMessageLogin["user_password"] = "1qaz2wsx";// strPw.c_str();
     string messageLogin = jsonMessageLogin.dump();
     printf("sendAuthenticate %s\n", messageLogin.c_str());
-    //sendCommunicationData((unsigned char* )messageLogin.c_str());
+    sendCommunicationData((unsigned char* )messageLogin.c_str());
 
 	return 0;
 }
