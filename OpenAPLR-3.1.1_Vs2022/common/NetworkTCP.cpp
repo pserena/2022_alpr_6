@@ -15,6 +15,7 @@
 
 #pragma comment (lib, "../x64/Release/aes256.lib")
 
+using namespace std;
 //-----------------------------------------------------------------
 // OpenTCPListenPort - Creates a Listen TCP port to accept
 // connection requests
@@ -317,6 +318,7 @@ ssize_t ReadDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, siz
     {
         if ((bytes = recv(TcpConnectedPort->ConnectedFd, (char*)(receiveData + i), (int)(encryptedLength - i), 0)) == -1)
         {
+            cout << "Recv failed : " << bytes << endl;
             return (-1);
         }
     }
@@ -327,7 +329,6 @@ ssize_t ReadDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, siz
     {
         data[i] = descryptData.at(i);
     }
-
     return(length);
 }
 #else

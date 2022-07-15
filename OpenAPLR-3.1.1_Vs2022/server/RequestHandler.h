@@ -32,6 +32,13 @@ struct Statistics {
 		cout << "Partial match : " << partial_match << endl;
 		cout << "No match : " << no_match << endl;
 	}
+	Statistics& operator=(const Statistics& o) {
+		total_queries = o.total_queries.load();
+		exact_match = o.exact_match.load();
+		partial_match = o.partial_match.load();
+		no_match = o.no_match.load();
+		return *this;
+	}
 };
 
 class RequestHandler {
@@ -61,5 +68,8 @@ private:
 	atomic_int thread_num_ = 0;
 	map<UINT_PTR, string> SessionLoginAccounts;
 	map<string, Statistics> statistics_;
+	bool quit_ = false;
+	unique_ptr<thread> print_thread;
+	void printInformation();
 };
 

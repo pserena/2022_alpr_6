@@ -15,13 +15,17 @@ bool iequals(const string& a, const string& b)
 		});
 }
 
-RequestHandler::RequestHandler() = default;
-RequestHandler::~RequestHandler() = default;
+RequestHandler::RequestHandler() : print_thread(make_unique<thread>(&RequestHandler::printInformation, this)) {
+}
+RequestHandler::~RequestHandler() {
+	quit_ = true;
+	print_thread->join();
+};
 
 void RequestHandler::plateQueryHandler(UINT_PTR id, nlohmann::json requestJson, function<void(string)> callback) {
 	//cout << "Num of thread : " << thread_num_ << endl;
 	nlohmann::json responseJson;
-	cout << requestJson.dump() << endl;
+	//cout << requestJson.dump() << endl;
 	vif_->getVehicleInformation(requestJson, responseJson);
 	if (responseJson["response"]["numFound"] == 0) {
 		++statistics_[SessionLoginAccounts[id]].no_match;
@@ -33,9 +37,6 @@ void RequestHandler::plateQueryHandler(UINT_PTR id, nlohmann::json requestJson, 
 		else
 			++statistics_[SessionLoginAccounts[id]].partial_match;		
 	}
-	/* This is test code */
-	cout << "User : " << SessionLoginAccounts[id] << endl;
-	statistics_[SessionLoginAccounts[id]].print();
 	
 	callback(responseJson.dump());
 	--thread_num_;
@@ -107,6 +108,42 @@ void RequestHandler::handle(UINT_PTR id, string requestString, function<void(str
 		thread t(&RequestHandler::plateQueryHandler, this, id, move(RequestJson), move(callback));
 		t.detach();
 	}
+}
+
+void RequestHandler::printInformation() {
+	Statistics prev_s;
+	map<string, uint32_t> query_per_sec;
+	while (!quit_) {
+		system("cls");
+		Statistics s;
+		uint32_t total_queyr_per_sec = 0;
+		uint32_t q;
+		for (const auto& it : statistics_) {
+			s.total_queries += it.second.total_queries;
+			s.exact_match += it.second.exact_match;
+			s.partial_match += it.second.partial_match;
+			s.no_match += it.second.no_match;
+			cout << "User : " << it.first << endl;
+			it.second.print();
+
+			if (query_per_sec.find(it.first) != query_per_sec.end()) {
+				q = it.second.total_queries - query_per_sec[it.first];	
+			}
+			else {
+				q = it.second.total_queries;
+			}
+			cout << "Query per sec : " << q << endl;
+			total_queyr_per_sec += q;
+			query_per_sec[it.first] = it.second.total_queries;
+		}
+
+		cout << "----------------------" << endl;
+		cout << "Total" << endl;
+		s.print();
+		cout << "Query per sec : " << total_queyr_per_sec << endl;
+		Sleep(1000);
+	}
+
 }
 
 void RequestHandler::connect(UINT_PTR id) {

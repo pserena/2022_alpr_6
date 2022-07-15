@@ -50,10 +50,10 @@
     <ClInclude Include="server.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LoginRequestHandler.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\common\AesManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LoginRequestHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
