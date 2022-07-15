@@ -46,8 +46,8 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
 
     vector<wstring> priority = {
         wplate,
-        wplate + L"?",
-        L"?" + wplate,
+        //wplate + L"?",
+        //L"?" + wplate,
         wplate + L"~1",
         //wplate + L"~2",
     };
@@ -112,7 +112,7 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
             } while (dwSize > 0);
         }
 
-        cout << "[getVehicleInformation] " << output << endl;
+        //cout << "[getVehicleInformation] " << output << endl;
 
         responseJson = json::parse(output.c_str());
         found = responseJson["response"]["numFound"];

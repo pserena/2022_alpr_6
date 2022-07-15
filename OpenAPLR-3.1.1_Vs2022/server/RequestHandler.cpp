@@ -18,17 +18,32 @@ bool iequals(const string& a, const string& b)
 RequestHandler::RequestHandler() = default;
 RequestHandler::~RequestHandler() = default;
 
-void RequestHandler::plateQueryHandler(nlohmann::json requestJson, function<void(string)> callback) {
-	cout << "Num of thread : " << thread_num_ << endl;
+void RequestHandler::plateQueryHandler(UINT_PTR id, nlohmann::json requestJson, function<void(string)> callback) {
+	//cout << "Num of thread : " << thread_num_ << endl;
 	nlohmann::json responseJson;
+	cout << requestJson.dump() << endl;
 	vif_->getVehicleInformation(requestJson, responseJson);
-	callback(move(responseJson.dump()));
+	if (responseJson["response"]["numFound"] == 0) {
+		++statistics_[SessionLoginAccounts[id]].no_match;
+	}
+	else {
+		const string& query = responseJson["responseHeader"]["params"]["q"];
+		if (query.find("~") == string::npos)
+			++statistics_[SessionLoginAccounts[id]].exact_match;
+		else
+			++statistics_[SessionLoginAccounts[id]].partial_match;		
+	}
+	/* This is test code */
+	cout << "User : " << SessionLoginAccounts[id] << endl;
+	statistics_[SessionLoginAccounts[id]].print();
+	
+	callback(responseJson.dump());
 	--thread_num_;
 }
 
 void RequestHandler::loginHandler(nlohmann::json requestJson, function<void(string)> callback) {
 
-	cout << "Num of thread : " << thread_num_ << endl;
+	//cout << "Num of thread : " << thread_num_ << endl;
 	nlohmann::json responseJson;
 	loginRequestHandler_->login(requestJson, responseJson);
 
@@ -37,14 +52,15 @@ void RequestHandler::loginHandler(nlohmann::json requestJson, function<void(stri
 		SessionLoginAccounts[requestJson["id"]] = requestJson["user_id"];
 	}
 
-	map<UINT_PTR, string>::iterator iter;
-	for (iter = SessionLoginAccounts.begin(); iter != SessionLoginAccounts.end(); iter++)
+#if 0
+	for (auto iter = SessionLoginAccounts.begin(); iter != SessionLoginAccounts.end(); iter++)
 	{
 		cout << "Key : " << iter->first << ", Value : " << iter->second << endl;
 	}
+#endif
 	
 	callback(move(responseJson.dump()));
-	cout << "[loginHandler] " << responseJson.dump() << endl;
+	//cout << "[loginHandler] " << responseJson.dump() << endl;
 	
 	--thread_num_;
 }
@@ -62,14 +78,16 @@ void RequestHandler::handle(UINT_PTR id, string requestString, function<void(str
 	}
 	else
 	{
+#if 0
 		map<UINT_PTR, string>::iterator iter;
 		for (iter = SessionLoginAccounts.begin(); iter != SessionLoginAccounts.end(); iter++)
 		{
 			cout << "Key : " << iter->first << ", Value : " << iter->second << endl;
 		}
 		cout << "id: " << id << endl;
-
-		if (SessionLoginAccounts.find(id) == SessionLoginAccounts.end())
+#endif
+		const auto& user_id = SessionLoginAccounts.find(id);
+		if (user_id == SessionLoginAccounts.end())
 		{
 			auto ResponseJson = R"(
 				 {
@@ -84,8 +102,9 @@ void RequestHandler::handle(UINT_PTR id, string requestString, function<void(str
 			callback(ResponseJson.dump());
 			return;
 		}
+		statistics_[user_id->second].total_queries++;
 
-		thread t(&RequestHandler::plateQueryHandler, this, move(RequestJson), move(callback));
+		thread t(&RequestHandler::plateQueryHandler, this, id, move(RequestJson), move(callback));
 		t.detach();
 	}
 }
