@@ -14,8 +14,8 @@ int main()
 
     client::MainController mc;
     client::UIManager ui;
-    client::IOSourceManager io;
-	client::VehicleInfoManager vehicleInfoMng;
+    client::IOSourceManager io(&ui);
+	client::VehicleInfoManager vehicleInfoMng(&ui);
 	client::ALPRProcessor alpr(county, "", &vehicleInfoMng);
     client::CommunicationManager commMan;
     client::LoginManager loginMng;

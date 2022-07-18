@@ -5,7 +5,9 @@ using namespace client;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
 
-VehicleInfoManager::VehicleInfoManager(void) {
+VehicleInfoManager::VehicleInfoManager(UIManager* uiManager) {
+	ui = uiManager;
+	commMan = NULL;
 }
 
 VehicleInfoManager::~VehicleInfoManager(void) {
@@ -31,7 +33,6 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
-	printf("rs:%s puid:%d\n", rs, puid);
 	commMan->sendRecognizedInfo(rs, puid);
 
 	return 0;
