@@ -9,7 +9,9 @@ map<int, Mat> mapVehicleImg;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
 
-VehicleInfoManager::VehicleInfoManager(void) {
+VehicleInfoManager::VehicleInfoManager(UIManager* uiManager) {
+	ui = uiManager;
+	commMan = NULL;
 }
 
 VehicleInfoManager::~VehicleInfoManager(void) {
@@ -35,15 +37,6 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
-	if (mapVehicleNum.find(rs) == mapVehicleNum.end()) {
-		mapVehicleNum.insert(pair<string, int>(rs, puid));
-		//mapVehicleNum.insert(make_pair(rs, puid));
-		if (mapVehicleImg.find(puid) == mapVehicleImg.end()) {
-			mapVehicleImg.insert(pair<int, Mat>(puid, pimag));
-		}
-	}
-
-	printf("rs:%s puid:%d\n", rs, puid);
 	commMan->sendRecognizedInfo(rs, puid);
 
 	return 0;

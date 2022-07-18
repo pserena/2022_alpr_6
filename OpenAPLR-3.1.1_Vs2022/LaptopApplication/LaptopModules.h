@@ -39,17 +39,22 @@ namespace client
 
 	class UIManager {
 	public:
+		Mat video;
+		Mat vinfo;
+
+		UIManager(void) {
+		}
+		virtual ~UIManager(void) {
+		}
 		Mode GetVideoMode(void);
 		int GetVideoDevice(void);
 		VideoResolution GetVideoResolution(void);
 		bool GetFileName(Mode mode, char filename[MAX_PATH]);
 		VideoSaveMode GetVideoSaveMode(void);
 		void PrintErrMsg(std::string msg);
+		void UpdateVinfo(void);
+		void UpdateVideo(void);
 
-		UIManager(void) {
-		}
-		virtual ~UIManager(void) {
-		}
 		void destroyAll(void) {
 			destroyAllWindows();
 		}
@@ -61,7 +66,8 @@ namespace client
 	public:
 		VideoSaveMode videosavemode;
 
-		IOSourceManager(void) {
+		IOSourceManager(UIManager *uiManager) {
+			ui = uiManager;
 			videosavemode = VideoSaveMode::vNone;
 			frameno = 0;
 			frame_width = 0;
@@ -78,6 +84,7 @@ namespace client
 		void ClossAll(void);
 	
 	private:
+		UIManager* ui;
 		int frameno;
 		int frame_width;
 		int frame_height;
@@ -108,7 +115,7 @@ namespace client
 
 	class VehicleInfoManager {
 	public:
-		VehicleInfoManager();
+		VehicleInfoManager(UIManager* uiManager);
 		virtual ~VehicleInfoManager();
 
 		int linkCommMag(CommunicationManager* comMan);
@@ -118,6 +125,7 @@ namespace client
 		int setRecognizedInfo(string rs, int puid, Mat pimg);
 	private:
 		CommunicationManager* commMan;
+		UIManager* ui;
 		void recevieThreadStart(void);
 		void timer_start(std::function<void(VehicleInfoManager*)> func, unsigned int interval);
 	};
