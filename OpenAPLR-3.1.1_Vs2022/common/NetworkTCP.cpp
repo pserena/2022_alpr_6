@@ -80,13 +80,14 @@ TTcpListenPort *OpenTcpListenPort(short localport)
       perror("bind failed");
       return(NULL);	  
   }
-
+#if 0
   ULONG NonBlock = 1;
   if (ioctlsocket(TcpListenPort->ListenFd, FIONBIO, &NonBlock) == SOCKET_ERROR)
   {
       perror("ioctlsocket() failed with error");
       return(NULL);
   }
+#endif
   
   return(TcpListenPort);
 }
@@ -156,6 +157,7 @@ TTcpConnectedPort *AcceptTcpConnection(TTcpListenPort *TcpListenPort,
 	}
 #endif
 
+#if 0
  ULONG NonBlock = 1;
   if (ioctlsocket(TcpConnectedPort->ConnectedFd, FIONBIO, &NonBlock) == SOCKET_ERROR)
  {
@@ -163,6 +165,7 @@ TTcpConnectedPort *AcceptTcpConnection(TTcpListenPort *TcpListenPort,
      CloseTcpConnectedPort(&TcpConnectedPort);
      return(NULL);
  }
+#endif
  else
      printf("ioctlsocket(FIONBIO) is OK!\n");
  return TcpConnectedPort;
@@ -317,14 +320,9 @@ ssize_t ReadDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, siz
 
     for (size_t i = 0; i < encryptedLength; i += bytes)
     {
-        int retry_cnt = 3;
-        do {
-            bytes = recv(TcpConnectedPort->ConnectedFd, (char*)(receiveData + i), (int)(encryptedLength - i), 0);
-            Sleep((3 - retry_cnt) * 10);
-        } while (bytes == -1 && retry_cnt--);
-        
+        bytes = recv(TcpConnectedPort->ConnectedFd, (char*)(receiveData + i), (int)(encryptedLength - i), 0);
         if (bytes == -1) {
-            cout << "Recv failed : " << bytes << " encryptedLength : " << encryptedLength << " length : " << length << " retry : " << retry_cnt << endl;
+            cout << "Recv failed : " << bytes << " encryptedLength : " << encryptedLength << " length : " << length << endl;
             return -1;
         }
     }
@@ -372,6 +370,7 @@ ssize_t WriteDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, si
                             ? ((length / AES_BLOCK_SIZE) * AES_BLOCK_SIZE + 1) 
                             : ((length / AES_BLOCK_SIZE + 1) * AES_BLOCK_SIZE + 1);
     unsigned char sendData[SEND_DATA_SIZE] = { 0, };
+    //cout << "Write Data : " << length << endl;
  
     for (int i = 0; i < AES_KEY_SIZE; i++) 
     {

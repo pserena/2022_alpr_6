@@ -50,6 +50,33 @@ static double avgfps()
 	return _avgfps;
 }
 
+static void puttext_info(Mat plate,
+	const char* d1, const char* d2, const char* d3, const char* d4,
+	int x, int y)
+{
+	cv::putText(plate, d1,
+		cv::Point(x, y),
+		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
+		Scalar(211, 211, 211), 1, LINE_AA, false
+	);
+	cv::putText(plate, d2,
+		cv::Point(x + 50, y),
+		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
+		Scalar(0, 255, 0), 0, LINE_AA, false
+	);
+
+	cv::putText(plate, d3,
+		cv::Point(x + 450, y),
+		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
+		Scalar(255, 224, 145), 0, LINE_AA, false
+	);
+	cv::putText(plate, d4,
+		cv::Point(x, y + 10),
+		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
+		Scalar(20, 20, 255), 1.3, LINE_AA, false
+	);
+}
+
 bool IOSourceManager::OpenInputVideo(Mode mode, VideoResolution vres, int dev_id, char filename[MAX_PATH])
 {
 	if (mode == Mode::mPlayback_Video) {
@@ -90,26 +117,26 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 	char text[1024] = "";
 
 	while (1) {
-		Mat frame;
+		Mat *frame = &ui->video;
 		
 		double start = CLOCK();
 
 		// Capture frame-by-frame
 		if (mode == Mode::mImage_File)
 		{
-			frame = imread(inputfile);
+			*frame = imread(inputfile);
 		}
-		else cap >> frame;
+		else cap >> *frame;
 
-		if (frame.empty())
+		if (frame->empty())
 			break;
 
 		if (videosavemode != VideoSaveMode::vSaveWithNoALPR)
 		{
-			alpr_process(frame);
+			alpr_process(*frame);
 
-			cv::putText(frame, text,
-				cv::Point(10, frame.rows - 10), //top-left position
+			cv::putText(*frame, text,
+				cv::Point(10, frame->rows - 10), //top-left position
 				FONT_HERSHEY_COMPLEX_SMALL, 0.5,
 				Scalar(0, 255, 0), 0, LINE_AA, false);
 		}
@@ -117,13 +144,15 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 		// Write the frame into the file 'output.avi'
 		if (videosavemode != VideoSaveMode::vNoSave)
 		{
-			thread output_saver(&IOSourceManager::SaveOutputVideo, this, frame);
+			thread output_saver(&IOSourceManager::SaveOutputVideo, this, *frame);
 			output_saver.detach();
 		}
 
 		// TODO: push to queue and 25 fps handling
 		// Display the resulting frame
-		imshow("Frame", frame);
+		//imshow("Frame", frame);
+		ui->UpdateVideo();
+
 		// Press  ESC on keyboard to  exit
 		char c = (char)waitKey(1);
 		if (c == 27)

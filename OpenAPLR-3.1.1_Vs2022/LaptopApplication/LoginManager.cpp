@@ -1,7 +1,9 @@
 #include "LapTopModules.h"
 #include <iostream>
+#include "json.hpp"
 
 using namespace client;
+using json = nlohmann::json;
 
 LoginManager::LoginManager(void)
 {
@@ -18,6 +20,13 @@ int LoginManager::linkCommMag(CommunicationManager* linkCommMan) {
 }
 
 int LoginManager::login(void) {
+	inputLoginInfo();
+	checkLoginSuccess();
+
+	return 0;
+}
+
+int LoginManager::inputLoginInfo(void) {
 	cout << "ID : " << endl;
 	string id, passwd;
 	cin >> id;
@@ -25,7 +34,40 @@ int LoginManager::login(void) {
 	cin >> passwd;
 	commMan->authenticate(id, passwd);
 
-//	int result = comMan.authenticate(strID, strPw);
+	//	int result = comMan.authenticate(strID, strPw);
+	return 0;
+}
+
+int LoginManager::checkLoginSuccess(void) {
+	char ResponseBuffer[8192] = { 0, };
+	static int retryCount = 0;
+
+	while (true)
+	{
+		commMan->receiveAuthenticateData(ResponseBuffer);
+		if (ResponseBuffer[0] != 0) {
+			printf("receiveAuthenticateData JOSN %s\n", ResponseBuffer);
+			json responseJson = json::parse(ResponseBuffer);
+			if (responseJson["request_type"] == "login")
+			{
+				if (responseJson["response_code"] == 200)
+				{
+					printf("checkLogin Success \n");
+					return 0;
+				}
+				else {
+					printf("checkLogin Fail \n");
+					inputLoginInfo();
+					retryCount = 0;
+				}
+			}
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+		if (retryCount++ > 50) {
+			inputLoginInfo();
+			retryCount = 0;
+		}
+	}
 	return 0;
 }
 
