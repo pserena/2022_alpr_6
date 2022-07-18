@@ -8,10 +8,12 @@
 #include <map>
 
 #include "alpr.h"
+#include "json.hpp"
 
 using namespace std;
 using namespace cv;
 using namespace alpr;
+using json = nlohmann::json;
 
 namespace client
 {
@@ -52,7 +54,7 @@ namespace client
 		bool GetFileName(Mode mode, char filename[MAX_PATH]);
 		VideoSaveMode GetVideoSaveMode(void);
 		void PrintErrMsg(std::string msg);
-		void UpdateVinfo(void);
+		void UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo);
 		void UpdateVideo(void);
 
 		void destroyAll(void) {

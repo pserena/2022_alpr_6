@@ -1,13 +1,16 @@
 #include "LapTopModules.h"
 #include <thread>
 #include <map>
+#include "json.hpp"
 
 using namespace client;
+using json = nlohmann::json;
 
 map<string, int> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
+char retPlateInfo1[8192] = { 0, };
 
 VehicleInfoManager::VehicleInfoManager(UIManager* uiManager) {
 	ui = uiManager;
@@ -37,6 +40,10 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
+	mapVehicleNum.insert(make_pair(rs, puid));
+	if (mapVehicleImg.find(puid) == mapVehicleImg.end()) {
+		mapVehicleImg.insert(make_pair(puid, pimag));
+	}
 	commMan->sendRecognizedInfo(rs, puid);
 
 	return 0;
@@ -46,9 +53,25 @@ int VehicleInfoManager::receiveCommunicationData(void)
 {
 	char ResponseBuffer[8192] = {0, };
 	int result = commMan->receiveCommunicationData(ResponseBuffer);
-	//printf("receiveCommunicationData %s\n", ResponseBuffer);
 	if (ResponseBuffer[0] != 0) {
 		printf("receiveCommunicationData JOSN %s\n", ResponseBuffer);
+		//string id;
+		//cin >> id;
+		try {
+			json responseJson = json::parse(ResponseBuffer);
+			if (responseJson["request_type"] == "query") {
+				string plate_number = responseJson["plate_number"];
+				int puid = mapVehicleNum.find(plate_number)->second;
+				Mat pimag = mapVehicleImg.find(puid)->second;
+				json jsonRetPlateInfo = responseJson["response"];
+
+				ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo);
+			}
+		}
+		catch (json::parse_error& ex)
+		{
+			printf("\n\n\n###################################### %d\n\n\n", ex.byte);
+		}
 	}
 	return 0;
 }
