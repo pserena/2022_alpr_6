@@ -99,6 +99,7 @@ namespace client
 		int networkConnectClose(void);
 		int retryNetworkConnect(void);
 		int sendCommunicationData(unsigned char* data);
+		int receiveAuthenticateData(char* data);
 		int receiveCommunicationData(char* data);
 		int authenticate(string strID, string strPw);
 		int sendRecognizedInfo(string rs, int puid);
@@ -144,5 +145,7 @@ namespace client
 		int logout(void);
 	private:
 		CommunicationManager* commMan;
+		int inputLoginInfo(void);
+		int checkLoginSuccess(void);
 	};
 }

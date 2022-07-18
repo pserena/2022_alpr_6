@@ -8,6 +8,7 @@ TTcpConnectedPort* TcpConnectedPort;
 //enum ResponseMode { ReadingHeader, ReadingMsg };
 
 using namespace client;
+
 client::ResponseMode GetResponseMode = client::ResponseMode::ReadingHeader;
 static int GetResponses(char* data);
 size_t RespHdrNumBytes;
@@ -28,6 +29,8 @@ CommunicationManager::~CommunicationManager(void)
 int CommunicationManager::networkConnect(void) {
     if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL) {
     //if ((TcpConnectedPort = OpenTcpConnection("192.168.0.100", "2222")) == NULL) {
+    //if ((TcpConnectedPort = OpenTcpConnection("192.168.0.105", "2222")) == NULL) {
+    //if ((TcpConnectedPort = OpenTcpConnection("10.58.58.47", "2222")) == NULL) {
         std::cout << "Connection Failed" << std::endl;
         return (-1);
     } else
@@ -67,6 +70,14 @@ int CommunicationManager::sendCommunicationData(unsigned char* data) {
     return 0;
 }
 
+int CommunicationManager::receiveAuthenticateData(char* data)
+{
+    int result = GetResponses(data);
+    if (result < 0)
+        retryNetworkConnect();
+    return 0;
+}
+
 int CommunicationManager::receiveCommunicationData(char* data)
 {
     int result = GetResponses(data);
@@ -78,6 +89,7 @@ int CommunicationManager::receiveCommunicationData(char* data)
 static int GetResponses(char* data)
 {
     char* ResponseBuffer = data;
+    //char ResponseBuffer[8192] = {0, };
     ssize_t BytesRead;
     ssize_t BytesOnSocket = 0;
     while ((BytesOnSocket = BytesAvailableTcp(TcpConnectedPort)) > 0)
@@ -107,13 +119,40 @@ static int GetResponses(char* data)
             }
             else if (GetResponseMode == ResponseMode::ReadingMsg)
             {
-                printf("Response %s\n", ResponseBuffer);
+                //printf("Response %s\n", ResponseBuffer);
+                printf("Response %s\n", "1111");
+                /*
+                json responseJson = json::parse(ResponseBuffer);
+                if (responseJson["request_type"] == "query")
+                {
+                    string q = responseJson["responseHeader"]["params"]["q"].get<std::string>();
+                    cout << "[TestJson] query stirng: " << q << endl;
+
+                    json docs = responseJson["response"]["docs"];
+                    cout << "[TestJson] size of plate info: " << docs.size() << endl;
+
+                    for (auto i = 0; i < docs.size(); ++i)
+                    {
+                        cout << "[TestJson] " << i << ": " << "plate_number: " << docs.at(i)["plate_number"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "status: " << docs.at(i)["status"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "reg_expiration: " << docs.at(i)["reg_expiration"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "owner_name: " << docs.at(i)["owner_name"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "owner_birthdate: " << docs.at(i)["owner_birthdate"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "owner_address_1: " << docs.at(i)["owner_address_1"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "owner_address_2: " << docs.at(i)["owner_address_2"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "vehicle_year: " << docs.at(i)["vehicle_year"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "vehicle_make: " << docs.at(i)["vehicle_make"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "vehicle_model: " << docs.at(i)["vehicle_model"].at(0) << endl;
+                        cout << "[TestJson] " << i << ": " << "vehicle_color: " << docs.at(i)["vehicle_color"].at(0) << endl;
+                    }
+                }*/
                 GetResponseMode = ResponseMode::ReadingHeader;
                 BytesInResponseBuffer = 0;
                 BytesNeeded = sizeof(RespHdrNumBytes);
             }
         }
     }
+
     if (BytesOnSocket < 0)
     {
         printf("Read Response Error - Closing Socket\n");
