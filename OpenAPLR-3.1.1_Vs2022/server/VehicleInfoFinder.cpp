@@ -49,7 +49,7 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
         //wplate + L"?",
         //L"?" + wplate,
         wplate + L"~1",
-        //wplate + L"~2",
+        wplate + L"~2",
     };
     wstring url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:";
     int cnt = 0;
@@ -131,7 +131,7 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
     if (hConnect) WinHttpCloseHandle(hConnect);
     if (hSession) WinHttpCloseHandle(hSession);
     auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
-    cout << "DB search time : " << search_time << "ms (found :" << found << ") for : " << responseJson["responseHeader"]["params"]["q"] << endl;
+    //cout << "DB search time : " << search_time << "ms (found :" << found << ") for : " << responseJson["responseHeader"]["params"]["q"] << endl;
 
     responseJson["request_type"] = requestJson["request_type"];
     responseJson["plate_number"] = requestJson["plate_number"];
