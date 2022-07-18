@@ -49,7 +49,7 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
         //wplate + L"?",
         //L"?" + wplate,
         wplate + L"~1",
-        //wplate + L"~2",
+        wplate + L"~2",
     };
     wstring url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:";
     int cnt = 0;

@@ -194,17 +194,18 @@ int main()
                 
 
 				unsigned short data_length = ntohs(DataStringLength);
-                cout << "DataStringLength : " << data_length << endl;
+                //cout << "DataStringLength : " << data_length << endl;
 				if (data_length > sizeof(DataString))
 				{
-					printf("Data string length error : %d\n", data_length);
+					printf("Data string length error : %d (%x)\n", data_length, data_length);
+                    return 0;
 					continue;
 				}
 
                 auto read_size = ReadDataTcp(connected_fd.get(), (unsigned char*)&DataString, data_length);
 				if (read_size != data_length)
 				{
-					printf("ReadDataTcp 2 error %u vs %u\n", read_size, data_length);
+					printf("ReadDataTcp 2 error %d vs %d\n", read_size, data_length);
 					continue;
 				}
 				//printf("Data is : %s\n", DataString);

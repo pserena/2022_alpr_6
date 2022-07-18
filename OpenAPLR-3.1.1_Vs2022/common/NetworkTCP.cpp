@@ -313,13 +313,19 @@ ssize_t ReadDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, siz
     {
         aesKey[i] = aesPrivateKey[i];
     }
+    //cout << " length : " << length << " encryp : " << encryptedLength << endl;
 
     for (size_t i = 0; i < encryptedLength; i += bytes)
     {
-        if ((bytes = recv(TcpConnectedPort->ConnectedFd, (char*)(receiveData + i), (int)(encryptedLength - i), 0)) == -1)
-        {
-            cout << "Recv failed : " << bytes << endl;
-            return (-1);
+        int retry_cnt = 3;
+        do {
+            bytes = recv(TcpConnectedPort->ConnectedFd, (char*)(receiveData + i), (int)(encryptedLength - i), 0);
+            Sleep((3 - retry_cnt) * 10);
+        } while (bytes == -1 && retry_cnt--);
+        
+        if (bytes == -1) {
+            cout << "Recv failed : " << bytes << " encryptedLength : " << encryptedLength << " length : " << length << " retry : " << retry_cnt << endl;
+            return -1;
         }
     }
     
