@@ -73,7 +73,6 @@ void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string respo
         lock_guard<mutex> l(send_lock_);
         WriteDataTcp(tcp_connected_port.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
         WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
-        Sleep(10); // FIXME : This is workaround to avoid packet corruption 
         //cout << "[sendResponse] " << buf << endl;
     }
 }
