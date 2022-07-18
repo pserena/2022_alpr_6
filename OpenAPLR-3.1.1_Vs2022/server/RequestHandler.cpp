@@ -113,6 +113,7 @@ void RequestHandler::handle(UINT_PTR id, string requestString, function<void(str
 void RequestHandler::printInformation() {
 	Statistics prev_s;
 	map<string, uint32_t> query_per_sec;
+	//return;
 	while (!quit_) {
 		system("cls");
 		Statistics s;

@@ -1,16 +1,33 @@
 #include "VehicleInfoFinder.h"
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <chrono>
 
 #include <Windows.h>
 #include <winhttp.h>
 
+using json = nlohmann::json;
 
 #pragma comment(lib, "winhttp.lib")
 
 using namespace std;
+
+VehicleInfoFinder::VehicleInfoFinder() {
+    char buf[4096];
+    ifstream is("server_config.json");
+    if (is.is_open()) {
+        is.read(buf, sizeof(buf));
+        is.close();
+        json s = json::parse(buf);
+        rules = move(s["search"].get<vector<string>>());
+#if 0
+        for (auto i : rules)
+            cout << i << endl;
+#endif
+    }
+}
 
 int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, nlohmann::json& responseJson) {
 
@@ -45,12 +62,16 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
     wstring wplate = wstring(plateNumber.begin(), plateNumber.end());
 
     vector<wstring> priority = {
-        wplate,
-        //wplate + L"?",
-        //L"?" + wplate,
-        wplate + L"~1",
-        wplate + L"~2",
+        wplate
     };
+
+    for (auto rule : rules) {
+        size_t start_pos = rule.find("PL");
+        if (start_pos == string::npos)
+            continue;
+        rule.replace(start_pos, 2, plateNumber);
+        priority.emplace_back(wstring(rule.begin(), rule.end()));
+    }
     wstring url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:";
     int cnt = 0;
 

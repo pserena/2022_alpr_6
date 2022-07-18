@@ -13,7 +13,10 @@ using json = nlohmann::json;
 
 class VehicleInfoFinder final {
 public:
-	VehicleInfoFinder() = default;
+	VehicleInfoFinder();
 	~VehicleInfoFinder() = default;
 	int getVehicleInformation(const nlohmann::json& requestJson, nlohmann::json& responseJson);
+
+private:
+	vector<string> rules;
 };
