@@ -50,6 +50,33 @@ static double avgfps()
 	return _avgfps;
 }
 
+static void puttext_info(Mat plate,
+	const char* d1, const char* d2, const char* d3, const char* d4,
+	int x, int y)
+{
+	cv::putText(plate, d1,
+		cv::Point(x, y),
+		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
+		Scalar(211, 211, 211), 1, LINE_AA, false
+	);
+	cv::putText(plate, d2,
+		cv::Point(x + 50, y),
+		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
+		Scalar(0, 255, 0), 0, LINE_AA, false
+	);
+
+	cv::putText(plate, d3,
+		cv::Point(x + 450, y),
+		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
+		Scalar(255, 224, 145), 0, LINE_AA, false
+	);
+	cv::putText(plate, d4,
+		cv::Point(x, y + 10),
+		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
+		Scalar(20, 20, 255), 1.3, LINE_AA, false
+	);
+}
+
 bool IOSourceManager::OpenInputVideo(Mode mode, VideoResolution vres, int dev_id, char filename[MAX_PATH])
 {
 	if (mode == Mode::mPlayback_Video) {
@@ -89,8 +116,11 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 {
 	char text[1024] = "";
 
+	Mat frame2 = imread("samples/us-4.jpg");
+    resize(frame2, frame2, Size(640, 480));
+
 	while (1) {
-		Mat frame;
+		Mat frame, overlay;
 		
 		double start = CLOCK();
 
@@ -120,6 +150,55 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 			thread output_saver(&IOSourceManager::SaveOutputVideo, this, frame);
 			output_saver.detach();
 		}
+
+		frame.copyTo(overlay);
+
+		// cv::Mat color(roi.size(), CV_8UC3, cv::Scalar(0, 125, 125));  yellowish color
+		rectangle(overlay, Rect(10, 10, frame.cols - 20, 115), Scalar(67, 67, 71), -1);
+		
+		double alpha = 0.7;
+		addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame);
+
+		char owner_info[256];
+		//string text = "FHF7093,,02/20/2022,Robert Kennedy,02/18/1983,"PSC 3345, Box 2552","APO AE 39458",2004,Lexus,Intrepid,blue";
+
+		char plate_num[8] = "FHF7093";
+		char status[32] = "No Wants / Warrants";
+
+		char reg_expiration[16] = "02/20/2022";
+		char owner_name[32] = "Robert Kennedy";
+		char owner_birthdate[16] = "02/18/1983";
+		char owner_address_1[32] = "PSC 3345, Box 2552";
+		char owner_address_2[32] = "APO AE 39458";
+		char vehicle_year[5] = "2004";
+		char vehicle_make[16] = "Lexus";
+		char vehicle_model[16] = "Intrepid";
+		char vehicle_color[8] = "blue";
+
+		sprintf_s(owner_info, sizeof(owner_info), "%-8s %-8s %-8s %-8s %-8s",
+			//status, 
+			reg_expiration,
+			owner_name,
+			owner_birthdate,
+			owner_address_1,
+			owner_address_2
+		);
+
+		char vehicle_info[256];
+		sprintf_s(vehicle_info, sizeof(vehicle_info), "%-5s %-8s %-8s %-8s",
+			vehicle_year,
+			vehicle_make,
+			vehicle_model,
+			vehicle_color
+		);
+
+		puttext_info(frame, plate_num, owner_info, vehicle_info, status, 15, 25);
+		puttext_info(frame, plate_num, owner_info, vehicle_info, status, 15, 45);
+		puttext_info(frame, plate_num, owner_info, vehicle_info, status, 15, 65);
+		puttext_info(frame, plate_num, owner_info, vehicle_info, status, 15, 85);
+		puttext_info(frame, plate_num, owner_info, vehicle_info, status, 15, 105);
+
+		hconcat(frame, frame2, frame);
 
 		// TODO: push to queue and 25 fps handling
 		// Display the resulting frame
