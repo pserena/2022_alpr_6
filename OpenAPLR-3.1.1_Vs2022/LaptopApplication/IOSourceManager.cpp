@@ -50,33 +50,6 @@ static double avgfps()
 	return _avgfps;
 }
 
-static void puttext_info(Mat plate,
-	const char* d1, const char* d2, const char* d3, const char* d4,
-	int x, int y)
-{
-	cv::putText(plate, d1,
-		cv::Point(x, y),
-		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
-		Scalar(211, 211, 211), 1, LINE_AA, false
-	);
-	cv::putText(plate, d2,
-		cv::Point(x + 50, y),
-		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
-		Scalar(0, 255, 0), 0, LINE_AA, false
-	);
-
-	cv::putText(plate, d3,
-		cv::Point(x + 450, y),
-		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
-		Scalar(255, 224, 145), 0, LINE_AA, false
-	);
-	cv::putText(plate, d4,
-		cv::Point(x, y + 10),
-		FONT_HERSHEY_COMPLEX_SMALL, 0.4,
-		Scalar(20, 20, 255), 1.3, LINE_AA, false
-	);
-}
-
 bool IOSourceManager::OpenInputVideo(Mode mode, VideoResolution vres, int dev_id, char filename[MAX_PATH])
 {
 	if (mode == Mode::mPlayback_Video) {

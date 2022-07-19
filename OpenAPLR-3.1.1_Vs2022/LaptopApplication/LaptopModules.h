@@ -43,8 +43,13 @@ namespace client
 	public:
 		Mat video;
 		Mat vinfo;
+		Mat vtext;
+		Mat vimg;
 
 		UIManager(void) {
+			vimg = Mat(100, 520, CV_8UC3, Scalar(255, 255, 255));
+			vtext = Mat(380, 520, CV_8UC3, Scalar(255, 255, 255));
+			vinfo = Mat(480, 520, CV_8UC3, Scalar(255, 255, 255));
 		}
 		virtual ~UIManager(void) {
 		}

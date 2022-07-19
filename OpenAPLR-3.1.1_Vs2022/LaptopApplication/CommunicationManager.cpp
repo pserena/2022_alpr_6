@@ -119,7 +119,7 @@ static int GetResponses(char* data)
             else if (GetResponseMode == ResponseMode::ReadingMsg)
             {
                 //printf("Response %s\n", ResponseBuffer);
-                printf("Response %s\n", "1111");
+                //printf("Response %s\n", "1111");
                 GetResponseMode = ResponseMode::ReadingHeader;
                 BytesInResponseBuffer = 0;
                 BytesNeeded = sizeof(RespHdrNumBytes);
