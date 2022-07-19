@@ -159,7 +159,7 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
     responseJson["plate_uid"] = requestJson["plate_uid"];
     responseJson["response_code"] = 200;
     responseJson["response_message"] = "query succeed.";
-    cout << requestJson << endl << endl << responseJson << endl;
+    //cout << requestJson << endl << endl << responseJson << endl;
 
     return 0;
 }
