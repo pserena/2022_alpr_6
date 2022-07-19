@@ -43,7 +43,7 @@ TTcpConnectedPort *OpenTcpConnection(const char *remotehostname, const char * re
 void CloseTcpConnectedPort(TTcpConnectedPort **TcpConnectedPort);
 ssize_t ReadDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, size_t length);
 ssize_t BytesAvailableTcp(TTcpConnectedPort* TcpConnectedPort);
-ssize_t WriteDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, size_t length);
+ssize_t WriteDataTcp(TTcpConnectedPort *TcpConnectedPort,const unsigned char *data, size_t length);
 #endif
 //------------------------------------------------------------------------------------------------
 //END of Include
