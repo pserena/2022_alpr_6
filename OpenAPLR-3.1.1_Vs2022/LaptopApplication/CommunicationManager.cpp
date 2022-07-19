@@ -27,9 +27,9 @@ CommunicationManager::~CommunicationManager(void)
 }
 
 int CommunicationManager::networkConnect(void) {
-    //if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL) {
+    if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL) {
     //if ((TcpConnectedPort = OpenTcpConnection("192.168.0.100", "2222")) == NULL) {
-    if ((TcpConnectedPort = OpenTcpConnection("192.168.0.105", "2222")) == NULL) {
+    //if ((TcpConnectedPort = OpenTcpConnection("192.168.0.105", "2222")) == NULL) {
     //if ((TcpConnectedPort = OpenTcpConnection("10.58.58.47", "2222")) == NULL) {
         std::cout << "Connection Failed" << std::endl;
         return (-1);
