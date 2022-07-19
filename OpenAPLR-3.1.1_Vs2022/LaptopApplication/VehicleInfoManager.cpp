@@ -1,6 +1,7 @@
 #include "LapTopModules.h"
 #include <thread>
 #include <map>
+#include <iostream>
 #include "json.hpp"
 
 using namespace client;
@@ -69,6 +70,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 		catch (json::parse_error& ex)
 		{
 			printf("\n\n\n###################################### %d\n\n\n", ex.byte);
+			//exit(1);
 		}
 	}
 	return 0;

@@ -245,7 +245,8 @@ TTcpConnectedPort *OpenTcpConnection(const char *remotehostname, const char * re
          perror("setsockopt SO_SNDBUF failed");
          return(NULL);
 	}
-	 
+  
+	
   if (connect(TcpConnectedPort->ConnectedFd,result->ai_addr,(int)result->ai_addrlen) < 0) 
           {
 	    CloseTcpConnectedPort(&TcpConnectedPort);

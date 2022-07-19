@@ -10,7 +10,7 @@ using namespace client;
 
 client::ResponseMode GetResponseMode = client::ResponseMode::ReadingHeader;
 static int GetResponses(char* data);
-size_t RespHdrNumBytes;
+unsigned short RespHdrNumBytes;
 unsigned int BytesInResponseBuffer = 0;
 ssize_t BytesNeeded = sizeof(RespHdrNumBytes);
 
@@ -119,6 +119,23 @@ int CommunicationManager::receiveCommunicationData(char* data)
 
 static int GetResponses(char* data)
 {
+    unsigned short DataStringLength;
+    //cout << "Get Response" << endl;
+    if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&DataStringLength, sizeof(DataStringLength)) != sizeof(DataStringLength)) {
+        cout << "Read Response Error - Closing Socket" << endl;
+        return -1;
+    }
+    unsigned short data_length = ntohs(DataStringLength);
+    //cout << "length : " << data_length << endl;
+    auto read_size = ReadDataTcp(TcpConnectedPort, (unsigned char*)data, data_length);
+    if (read_size != data_length)
+    {
+        printf("ReadDataTcp 2 error %lld vs %d\n", read_size, data_length);
+        return -1;
+    }
+    //cout << data << endl;
+    return 0;
+#if 0
     char* ResponseBuffer = data;
     ssize_t BytesRead;
     ssize_t BytesOnSocket = 0;
@@ -165,6 +182,7 @@ static int GetResponses(char* data)
         return -1;
     }
     return 0;
+#endif
 }
 
 int CommunicationManager::authenticate(string strID, string strPw) {
