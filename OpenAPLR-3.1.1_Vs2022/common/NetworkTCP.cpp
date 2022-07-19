@@ -333,6 +333,7 @@ ssize_t ReadDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, siz
     {
         data[i] = descryptData.at(i);
     }
+    data[descryptData.size()] = 0;
     return(length);
 }
 #else

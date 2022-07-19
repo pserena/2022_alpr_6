@@ -6,10 +6,12 @@
 #include "LaptopModules.h"
 #include "opencv2/opencv.hpp"
 #include "DeviceEnumerator.h"
+#include "json.hpp"
 
 using namespace cv;
 using namespace std;
 using namespace client;
+using json = nlohmann::json;
 
 static bool getconchar(KEY_EVENT_RECORD& krec)
 {
@@ -221,7 +223,7 @@ static void puttext_info(Mat plate, const char* d1, const char* d2, const char* 
     );
 }
 
-void UIManager::UpdateVinfo(void)
+void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo)
 {
     Mat image, info, overlay;
 

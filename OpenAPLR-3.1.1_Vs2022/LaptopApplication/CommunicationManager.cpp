@@ -89,7 +89,6 @@ int CommunicationManager::receiveCommunicationData(char* data)
 static int GetResponses(char* data)
 {
     char* ResponseBuffer = data;
-    //char ResponseBuffer[8192] = {0, };
     ssize_t BytesRead;
     ssize_t BytesOnSocket = 0;
     while ((BytesOnSocket = BytesAvailableTcp(TcpConnectedPort)) > 0)
@@ -121,31 +120,6 @@ static int GetResponses(char* data)
             {
                 //printf("Response %s\n", ResponseBuffer);
                 printf("Response %s\n", "1111");
-                /*
-                json responseJson = json::parse(ResponseBuffer);
-                if (responseJson["request_type"] == "query")
-                {
-                    string q = responseJson["responseHeader"]["params"]["q"].get<std::string>();
-                    cout << "[TestJson] query stirng: " << q << endl;
-
-                    json docs = responseJson["response"]["docs"];
-                    cout << "[TestJson] size of plate info: " << docs.size() << endl;
-
-                    for (auto i = 0; i < docs.size(); ++i)
-                    {
-                        cout << "[TestJson] " << i << ": " << "plate_number: " << docs.at(i)["plate_number"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "status: " << docs.at(i)["status"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "reg_expiration: " << docs.at(i)["reg_expiration"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "owner_name: " << docs.at(i)["owner_name"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "owner_birthdate: " << docs.at(i)["owner_birthdate"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "owner_address_1: " << docs.at(i)["owner_address_1"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "owner_address_2: " << docs.at(i)["owner_address_2"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "vehicle_year: " << docs.at(i)["vehicle_year"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "vehicle_make: " << docs.at(i)["vehicle_make"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "vehicle_model: " << docs.at(i)["vehicle_model"].at(0) << endl;
-                        cout << "[TestJson] " << i << ": " << "vehicle_color: " << docs.at(i)["vehicle_color"].at(0) << endl;
-                    }
-                }*/
                 GetResponseMode = ResponseMode::ReadingHeader;
                 BytesInResponseBuffer = 0;
                 BytesNeeded = sizeof(RespHdrNumBytes);
