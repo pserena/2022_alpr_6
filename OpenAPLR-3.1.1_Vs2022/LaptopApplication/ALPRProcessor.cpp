@@ -10,6 +10,8 @@ unsigned int CurrentPlate = 0;
 Point2i last_point(0, 0);
 int process_count = 0;
 
+int counter = 0;
+
 void ALPRProcessor::process(Mat frame)
 {
 	std::vector<AlprRegionOfInterest> regionsOfInterest;
@@ -64,7 +66,18 @@ void ALPRProcessor::process(Mat frame)
 				plate_cropped = frame(rect & totalrect);
 			}
 
+			printf("str:%s pid:%d rect(x:%d y:%d) image_empty:%d \n", 
+				rs.c_str(), plate_uid, rect.x, rect.y,
+				plate_cropped.empty());
+
 			viManager->setRecognizedInfo(rs, plate_uid, plate_cropped);
+
+			if (!plate_cropped.empty())
+			{
+				char fn[128];
+				sprintf_s(fn, sizeof(fn), "cropped_%d.jpg", counter++);
+				imwrite(fn, plate_cropped);
+			}
 		}
 
 		strcpy_s(LastPlates[CurrentPlate], results.plates[i].bestPlate.characters.c_str());

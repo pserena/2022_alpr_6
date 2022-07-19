@@ -197,13 +197,13 @@ void UIManager::PrintErrMsg(std::string msg)
 
 static void puttext_info(Mat plate, const char* d1, const char* d2, const char* d3,
     const char* d4, int x, int y)
-{
+{   
     cv::putText(plate, d1,
         cv::Point(x, y),
         FONT_HERSHEY_COMPLEX_SMALL, 0.4,
-        Scalar(211, 211, 211), 1, LINE_AA, false
+        Scalar(255, 0, 0), 1, LINE_AA, false
     );
-
+    
     cv::putText(plate, d2,
         cv::Point(x + 50, y),
         FONT_HERSHEY_COMPLEX_SMALL, 0.4,
@@ -211,13 +211,13 @@ static void puttext_info(Mat plate, const char* d1, const char* d2, const char* 
     );
 
     cv::putText(plate, d3,
-        cv::Point(x + 450, y),
+        cv::Point(x, y + 10),
         FONT_HERSHEY_COMPLEX_SMALL, 0.4,
         Scalar(255, 224, 145), 0, LINE_AA, false
     );
 
     cv::putText(plate, d4,
-        cv::Point(x, y + 10),
+        cv::Point(x + 250, y + 10),
         FONT_HERSHEY_COMPLEX_SMALL, 0.4,
         Scalar(20, 20, 255), 1.3, LINE_AA, false
     );
@@ -225,69 +225,64 @@ static void puttext_info(Mat plate, const char* d1, const char* d2, const char* 
 
 void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo)
 {
-    Mat image, info, overlay;
-    //imshow("Laptop Application", pimag);
-    // image = imread(cropped_image);
+    json docs = jsonRetPlateInfo["docs"];
 
-    info.copyTo(overlay);
+    if (docs.size() == 0)
+        return;
 
-    // cv::Mat color(roi.size(), CV_8UC3, cv::Scalar(0, 125, 125)); yellowish color
-    rectangle(overlay, Rect(10, 10, info.cols - 20, 115), Scalar(67, 67, 71), -1);
+    Mat info(vtext.size(), CV_8UC3, Scalar(255, 255, 255));
 
-    double alpha = 0.7;
-    addWeighted(overlay, alpha, info, 1 - alpha, 0, info);
+    for (int i = 0; i < docs.size(); ++i)
+    {
+        string plate_num = docs.at(i)["plate_number"].at(0).get<std::string>();
+        string reg_expiration = docs.at(i)["reg_expiration"].at(0).get<std::string>();
+        string status = docs.at(i)["status"].at(0).get<std::string>();
+        string owner_name = docs.at(i)["owner_name"].at(0).get<std::string>();
+        string owner_birthdate = docs.at(i)["owner_birthdate"].at(0).get<std::string>();
+        string owner_address_1 = docs.at(i)["owner_address_1"].at(0).get<std::string>();
+        string owner_address_2 = docs.at(i)["owner_address_2"].at(0).get<std::string>();
+        
+        int vehicle_year = docs.at(i)["vehicle_year"].at(0).get<int>();
+        string vehicle_make = docs.at(i)["vehicle_make"].at(0).get<std::string>();
+        string vehicle_model = docs.at(i)["vehicle_model"].at(0).get<std::string>();
+        string vehicle_color = docs.at(i)["vehicle_color"].at(0).get<std::string>();
+        
+        char owner_info[256];
+        sprintf_s(owner_info, sizeof(owner_info), "%s %s %s %s %s",
+            // status,
+            reg_expiration.c_str(),
+            owner_name.c_str(),
+            owner_birthdate.c_str(),
+            owner_address_1.c_str(),
+            owner_address_2.c_str()
+        );
 
-    char owner_info[256];
-    // string text = "FH7093,,02/20/2022,Robert Kennedy,02/18/1983,"PSC 3345, Box 2552","APO AE 39458",2004,Lexus,Intrepid,blue";
+        char vehicle_info[256];
+        sprintf_s(vehicle_info, sizeof(vehicle_info), "%d %s %s %s",
+            vehicle_year,
+            vehicle_make.c_str(),
+            vehicle_model.c_str(),
+            vehicle_color.c_str()
+        );
+        
+        puttext_info(info, plate_num.c_str(), owner_info, vehicle_info, status.c_str(),
+            15, 25 + i * 20);
+    }
 
-    char plate_num[8] = "FHF7093";
-    char status[32] = "No Wants / Warrants";
+    info.copyTo(vtext);
 
-    char reg_expiration[16] = "02/20/2022";
-    char owner_name[32] = "Robert Kennedy";
-    char owner_birthdate[16] = "02/18/1983";
-    char owner_address_1[32] = "PSC 3345, Box 2552";
-    char owner_address_2[32] = "APO AE 39458";
-    char vehicle_year[5] = "2004";
-    char vehicle_make[16] = "Lexus";
-    char vehicle_model[16] = "Intrepid";
-    char vehicle_color[8] = "blue";
+    cout << "pimag row: " << pimag.rows << " col: " << pimag.cols << endl;
 
-    sprintf_s(owner_info, sizeof(owner_info), "%-8s %-8s %-8s %-8s %-8s",
-        // status,
-        reg_expiration,
-        owner_name,
-        owner_birthdate,
-        owner_address_1,
-        owner_address_2
-    );
-
-    char vehicle_info[256];
-    sprintf_s(vehicle_info, sizeof(vehicle_info), "%-5s %-8s %-8s %-8s",
-        vehicle_year,
-        vehicle_make,
-        vehicle_model,
-        vehicle_color
-    );
-
-    puttext_info(info, plate_num, owner_info, vehicle_info, status, 15, 25);
-    puttext_info(info, plate_num, owner_info, vehicle_info, status, 15, 45);
-    puttext_info(info, plate_num, owner_info, vehicle_info, status, 15, 65);
-    puttext_info(info, plate_num, owner_info, vehicle_info, status, 15, 85);
-    puttext_info(info, plate_num, owner_info, vehicle_info, status, 15, 105);
-
-    vconcat(image, overlay, image);
-    image.copyTo(vinfo);
+    resize(pimag, pimag, Size(520, 100));
+    pimag.copyTo(vimg);
 }
 
 void UIManager::UpdateVideo(void)
 {
     Mat ui;
 
-    if (!vinfo.empty())
-        hconcat(ui, video, vinfo);
-    else
-        video.copyTo(ui);
+    vconcat(vimg, vtext, vinfo);
+    hconcat(video, vinfo, ui);
 
     imshow("Laptop Application", ui);
 }

@@ -64,12 +64,13 @@ bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
 
 mutex send_lock_;
 void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string response) {
-    size_t SendMsgHdr = ntohs((u_short)response.length());
+    unsigned short SendMsgHdr = ntohs((u_short)response.length());
     //cout << "--------- length : " << response.length() << "----------" << endl;
-    //cout << response << endl;
     {
         lock_guard<mutex> l(send_lock_);
+        //cout << response.length() << endl;
         WriteDataTcp(tcp_connected_port.get(), (const unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
+        //cout << endl << response << endl;
         WriteDataTcp(tcp_connected_port.get(), (const unsigned char*)response.c_str(), response.length());
     }
 }

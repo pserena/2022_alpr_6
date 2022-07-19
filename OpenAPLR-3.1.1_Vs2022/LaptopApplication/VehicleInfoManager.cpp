@@ -1,6 +1,7 @@
 #include "LapTopModules.h"
 #include <thread>
 #include <map>
+#include <iostream>
 #include "json.hpp"
 
 using namespace client;
@@ -41,8 +42,10 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
 	mapVehicleNum.insert(make_pair(rs, puid));
-	if (mapVehicleImg.find(puid) == mapVehicleImg.end()) {
-		mapVehicleImg.insert(make_pair(puid, pimag));
+	if (!pimag.empty()) {
+		Mat copy;
+		pimag.copyTo(copy);
+		mapVehicleImg.insert(make_pair(puid, copy));
 	}
 	commMan->sendRecognizedInfo(rs, puid);
 
@@ -54,7 +57,9 @@ int VehicleInfoManager::receiveCommunicationData(void)
 	char ResponseBuffer[8192] = {0, };
 	int result = commMan->receiveCommunicationData(ResponseBuffer);
 	if (ResponseBuffer[0] != 0) {
-		printf("receiveCommunicationData JOSN %s\n", ResponseBuffer);
+		//printf("receiveCommunicationData JSON %s\n", ResponseBuffer);
+		//string id;
+		//cin >> id;
 		try {
 			json responseJson = json::parse(ResponseBuffer);
 			if (responseJson["request_type"] == "query") {
@@ -69,6 +74,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 		catch (json::parse_error& ex)
 		{
 			printf("\n\n\n###################################### %d\n\n\n", ex.byte);
+			//exit(1);
 		}
 	}
 	return 0;
