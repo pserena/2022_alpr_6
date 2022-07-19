@@ -34,18 +34,17 @@ int LoginManager::inputLoginInfo(void) {
 	cin >> passwd;
 	commMan->authenticate(id, passwd);
 
-	//	int result = comMan.authenticate(strID, strPw);
 	return 0;
 }
 
 int LoginManager::checkLoginSuccess(void) {
-	char ResponseBuffer[8192] = { 0, };
+	char ResponseBuffer[8192] = {0, };
 	static int retryCount = 0;
 
 	while (true)
 	{
-		commMan->receiveAuthenticateData(ResponseBuffer);
-		if (ResponseBuffer[0] != 0) {
+		int result = commMan->receiveAuthenticateData(ResponseBuffer);
+		if (result >=0 && ResponseBuffer[0] != 0) {
 			printf("receiveAuthenticateData JOSN %s\n", ResponseBuffer);
 			json responseJson = json::parse(ResponseBuffer);
 			if (responseJson["request_type"] == "login")
@@ -64,7 +63,7 @@ int LoginManager::checkLoginSuccess(void) {
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		if (retryCount++ > 50) {
-			commMan->retryNetworkConnect();
+			commMan->retryNetworkConnectSave(true);
 			inputLoginInfo();
 			printf("checkLogin Fail timeout \n");
 			retryCount = 0;
