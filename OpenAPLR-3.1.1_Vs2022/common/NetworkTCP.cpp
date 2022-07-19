@@ -359,7 +359,7 @@ ssize_t ReadDataTcp(TTcpConnectedPort* TcpConnectedPort, unsigned char* data, si
 // WriteDataTcp - Writes the specified amount TCP data 
 //-----------------------------------------------------------------
 #if (defined(AES_ENCRYPTION) && (AES_ENCRYPTION == TRUE))
-ssize_t WriteDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, size_t length)
+ssize_t WriteDataTcp(TTcpConnectedPort *TcpConnectedPort,const unsigned char *data, size_t length)
 {
     ssize_t total_bytes_written = 0;
     ssize_t bytes_written;
