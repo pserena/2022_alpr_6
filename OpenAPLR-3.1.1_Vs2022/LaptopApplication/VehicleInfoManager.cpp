@@ -1,6 +1,7 @@
 #include "LapTopModules.h"
 #include <thread>
 #include <map>
+#include <iostream>
 #include "json.hpp"
 
 using namespace client;
@@ -10,7 +11,6 @@ map<string, int> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
-char retPlateInfo1[8192] = { 0, };
 
 VehicleInfoManager::VehicleInfoManager(UIManager* uiManager) {
 	ui = uiManager;
@@ -31,12 +31,13 @@ int VehicleInfoManager::VehicleInfoReceiveStart(void) {
 	return 0;
 }
 
+/*
 int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 	printf("sendVehicleInfo ->%s\n", vehicleData);
 	commMan->sendCommunicationData(vehicleData);
 
 	return 0;
-}
+}*/
 
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
@@ -73,6 +74,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 		catch (json::parse_error& ex)
 		{
 			printf("\n\n\n###################################### %d\n\n\n", ex.byte);
+			//exit(1);
 		}
 	}
 	return 0;

@@ -5,18 +5,18 @@
 #include "json.hpp"
 
 TTcpConnectedPort* TcpConnectedPort;
-//enum ResponseMode { ReadingHeader, ReadingMsg };
 
 using namespace client;
 
 client::ResponseMode GetResponseMode = client::ResponseMode::ReadingHeader;
 static int GetResponses(char* data);
-size_t RespHdrNumBytes;
+unsigned short RespHdrNumBytes;
 unsigned int BytesInResponseBuffer = 0;
 ssize_t BytesNeeded = sizeof(RespHdrNumBytes);
 
 static string userID = "";
 static string userPass = "";
+static int reconnectThread(CommunicationManager* commMan);
 
 CommunicationManager::CommunicationManager(void)
 {
@@ -43,11 +43,22 @@ int CommunicationManager::networkConnectClose(void) {
     return 0;
 }
 
+int CommunicationManager::retryNetworkConnectSave(bool save) {
+    if (save != saveRetry) {
+        printf("retryNetworkConnectSave 11 %d\n", save);
+        saveRetry = save;
+    }
+    return 0;
+}
+
 int CommunicationManager::retryNetworkConnect(void) {
-    //networkConnectClose();
-    networkConnect();
-    if (!userID.empty()) {
-        authenticate(userID, userPass);
+    printf("retryNetworkConnect start \n");
+    networkConnectClose();
+    if (networkConnect() >=0) {
+        saveRetry = false;
+        if (!userID.empty()) {
+            authenticate(userID, userPass);
+        }
     }
     return 0;
 }
@@ -57,37 +68,74 @@ int CommunicationManager::sendCommunicationData(unsigned char* data) {
     unsigned short SendMsgHdr, SendPlateStringLength;
     SendPlateStringLength = (unsigned short)strlen((char*)data) + 1;
     SendMsgHdr = htons(SendPlateStringLength);
-    if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) == sizeof(SendPlateStringLength)) {
+    if (TcpConnectedPort == NULL || saveRetry) {
+        printf("skip sendCommunicationData :: %d\n", saveRetry);
+        retryNetworkConnectSave(true);
+    }
+    else if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) == sizeof(SendPlateStringLength)) {
         if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)data, SendPlateStringLength)) != SendPlateStringLength) {
-            printf("WriteDataTcp %d\n", result);
-            retryNetworkConnect();
+            printf("WriteDataTcp 11 :: %d\n", result);
+            retryNetworkConnectSave(true);
+        }
+        else {
+            printf("sent ->%s\n", data);
         }
     } else {
-        printf("WriteDataTcp %d\n", result);
-        retryNetworkConnect();
+        printf("WriteDataTcp 22 :: %d\n", result);
+        retryNetworkConnectSave(true);
     }
-    printf("sent ->%s\n", data);
     return 0;
 }
 
 int CommunicationManager::receiveAuthenticateData(char* data)
 {
+    if (TcpConnectedPort == NULL) {
+        retryNetworkConnectSave(true);
+        return -1;
+    }
     int result = GetResponses(data);
-    if (result < 0)
-        retryNetworkConnect();
+    if (result < 0) {
+        retryNetworkConnectSave(true);
+        return -1;
+    }
     return 0;
 }
 
 int CommunicationManager::receiveCommunicationData(char* data)
 {
-    int result = GetResponses(data);
-    if (result < 0)
-        retryNetworkConnect();
+    if (TcpConnectedPort == NULL) {
+        retryNetworkConnectSave(true);
+        return -1;
+    }
+    else {
+        int result = GetResponses(data);
+        if (result < 0) {
+            retryNetworkConnectSave(true);
+            return -1;
+        }
+    }
     return 0;
 }
 
 static int GetResponses(char* data)
 {
+    unsigned short DataStringLength;
+    //cout << "Get Response" << endl;
+    if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&DataStringLength, sizeof(DataStringLength)) != sizeof(DataStringLength)) {
+        cout << "Read Response Error - Closing Socket" << endl;
+        return -1;
+    }
+    unsigned short data_length = ntohs(DataStringLength);
+    //cout << "length : " << data_length << endl;
+    auto read_size = ReadDataTcp(TcpConnectedPort, (unsigned char*)data, data_length);
+    if (read_size != data_length)
+    {
+        printf("ReadDataTcp 2 error %lld vs %d\n", read_size, data_length);
+        return -1;
+    }
+    //cout << data << endl;
+    return 0;
+#if 0
     char* ResponseBuffer = data;
     ssize_t BytesRead;
     ssize_t BytesOnSocket = 0;
@@ -134,9 +182,11 @@ static int GetResponses(char* data)
         return -1;
     }
     return 0;
+#endif
 }
 
 int CommunicationManager::authenticate(string strID, string strPw) {
+    reconnectThreadStart();
     if (!strID.empty()) {
         userID = strID;
         userPass = strPw;
@@ -146,8 +196,8 @@ int CommunicationManager::authenticate(string strID, string strPw) {
             "request_type": "login"
         }
     )"_json;
-    jsonMessageLogin["user_id"] = "daniel";//strID.c_str();
-    jsonMessageLogin["user_password"] = "1qaz2wsx";// strPw.c_str();
+    jsonMessageLogin["user_id"] = strID.c_str(); //"daniel";
+    jsonMessageLogin["user_password"] = strPw.c_str(); //"1qaz2wsx";
     string messageLogin = jsonMessageLogin.dump();
     printf("sendAuthenticate %s\n", messageLogin.c_str());
     sendCommunicationData((unsigned char* )messageLogin.c_str());
@@ -167,5 +217,33 @@ int CommunicationManager::sendRecognizedInfo(string rs, int puid) {
     printf("sendRecognizedInfo %s\n", messageRecognized.c_str());
     sendCommunicationData((unsigned char*)messageRecognized.c_str());
 
+    return 0;
+}
+
+void CommunicationManager::reconnectThreadStart(void) {
+    static bool startThread = false;
+    if (!startThread) {
+        timer_start(reconnectThread, 100);
+        startThread = true;
+    }
+}
+
+void CommunicationManager::timer_start(std::function<void(CommunicationManager*)> func, unsigned int interval)
+{
+    std::thread([func, this, interval]() {
+        while (true)
+        {
+            func(this);
+            std::this_thread::sleep_for(std::chrono::milliseconds(interval));
+        }
+        }).detach();
+}
+
+static int reconnectThread(CommunicationManager* commMan)
+{
+    if (commMan->saveRetry) {
+        commMan->retryNetworkConnect();
+    }
+    //printf("receiveThreadt\n");
     return 0;
 }

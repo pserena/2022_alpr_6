@@ -67,6 +67,7 @@ void aesDecryption(const unsigned char* encryptedData, int encryptedDataLength, 
     {
         decryptionData[i] = decryptedData.at(i);
     }
+    decryptionData[decryptedData.size()] = 0;
 
     return;
 }

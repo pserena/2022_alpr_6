@@ -5,31 +5,102 @@
 #include <chrono>
 
 #include <Windows.h>
-#include <winhttp.h>
 
+#include <fstream>
+#include <sstream> //std::stringstream
 
-#pragma comment(lib, "winhttp.lib")
+#include "AesManager.h"
 
 using namespace std;
 
-int LoginRequestHandler::login(const nlohmann::json& requestJson, nlohmann::json& responseJson) {
+
+bool equals_ignorecase(const string& a, const string& b)
+{
+    return std::equal(a.begin(), a.end(),
+        b.begin(), b.end(),
+        [](char a, char b) {
+            return tolower(a) == tolower(b);
+        });
+}
+
+string readFileIntoString(const string& path) {
+    struct stat sb {};
+    string res;
+
+    FILE* input_file = fopen(path.c_str(), "r");
+    if (input_file == nullptr) {
+        perror("fopen");
+    }
+
+    stat(path.c_str(), &sb);
+    res.resize(sb.st_size);
+
+    fread(const_cast<char*>(res.data()), sb.st_size, 1, input_file);
+    fclose(input_file);
+
+    return res;
+}
+
+vector<string> split(string str, char Delimiter) {
+    istringstream iss(str);
+    string buffer;
+
+    vector<string> result;
+
+    while (getline(iss, buffer, Delimiter)) {
+        result.push_back(buffer);
+    }
+
+    return result;
+}
+
+int UserAuthotication(string &userId, string &userPassword)
+{
+    string accountInfo = readFileIntoString("user_accounts.txt");
+    cout << "accountInfo: " << accountInfo << endl;
+
+    unsigned char decryptionData[512];
+    memset(decryptionData, 0, 512);
+    int decryptionDataLength = -1;
+    aesDecryption((unsigned char*)accountInfo.c_str(), accountInfo.length(), decryptionData, decryptionDataLength);
+    cout << "accountInfo(decrypted) : " << decryptionData << endl;
+
+    string decryptedAccountInfo = static_cast<std::string>(reinterpret_cast<const char*>(decryptionData));
+    vector<string> result = split(decryptedAccountInfo, '\n');
+    for (auto cur : result)
+    {
+        vector<string> idPassword = split(cur, '|');
+        string curId = idPassword[0];
+        string curPassword = idPassword[1];
+        if (equals_ignorecase(userId, curId)
+            && equals_ignorecase(userPassword, curPassword))
+        {
+            return 1;
+        }            
+    }
+    return 0;
+}
+
+int LoginRequestHandler::login(const nlohmann::json& requestJson, nlohmann::json& responseJson)
+{
     auto start_time = std::chrono::milliseconds(GetTickCount64());
 
     string userId = requestJson["user_id"].get<std::string>();
+    cout << "userId: " << userId << endl;
     string userPassword = requestJson["user_password"].get<std::string>();
-    
+    cout << "userPassword: " << userPassword << endl;
+
     responseJson["request_type"] = requestJson["request_type"];
     responseJson["user_id"] = requestJson["user_id"];
+    responseJson["response_code"] = -100;
+    responseJson["response_message"] = "login failed.";
 
-    if (userId == "daniel" && userPassword == "1qaz2wsx")
+    if (UserAuthotication(userId, userPassword))
     {
         responseJson["response_code"] = 200;
         responseJson["response_message"] = "login succeed.";
-    }
-    else
-    {
-        responseJson["response_code"] = -100;
-        responseJson["response_message"] = "login failed.";
+
+        cout << "responseJson(changed): " << responseJson << endl;
     }
 
     auto process_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();

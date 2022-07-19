@@ -122,7 +122,7 @@ void RequestHandler::printInformation() {
 		if (!SessionLoginAccounts.empty()) {
 			cout << "-- Logged in user --" << endl;
 			for (auto la : SessionLoginAccounts) {
-				cout << la.second << endl;
+				cout << " " << la.second << endl;
 			}
 			cout << "--------------------" << endl;
 		}

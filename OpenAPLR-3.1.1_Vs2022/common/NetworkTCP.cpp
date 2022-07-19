@@ -245,7 +245,8 @@ TTcpConnectedPort *OpenTcpConnection(const char *remotehostname, const char * re
          perror("setsockopt SO_SNDBUF failed");
          return(NULL);
 	}
-	 
+  
+	
   if (connect(TcpConnectedPort->ConnectedFd,result->ai_addr,(int)result->ai_addrlen) < 0) 
           {
 	    CloseTcpConnectedPort(&TcpConnectedPort);
@@ -333,6 +334,7 @@ ssize_t ReadDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, siz
     {
         data[i] = descryptData.at(i);
     }
+    data[descryptData.size()] = 0;
     return(length);
 }
 #else
@@ -358,7 +360,7 @@ ssize_t ReadDataTcp(TTcpConnectedPort* TcpConnectedPort, unsigned char* data, si
 // WriteDataTcp - Writes the specified amount TCP data 
 //-----------------------------------------------------------------
 #if (defined(AES_ENCRYPTION) && (AES_ENCRYPTION == TRUE))
-ssize_t WriteDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, size_t length)
+ssize_t WriteDataTcp(TTcpConnectedPort *TcpConnectedPort,const unsigned char *data, size_t length)
 {
     ssize_t total_bytes_written = 0;
     ssize_t bytes_written;

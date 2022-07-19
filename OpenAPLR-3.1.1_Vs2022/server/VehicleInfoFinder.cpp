@@ -38,7 +38,6 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
 
     string output;
     int found = 0;
-    //json json_output;
    
     HINTERNET  hSession = NULL;
     HINTERNET  hConnect = NULL;
@@ -55,8 +54,6 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
     if (hSession)
         hConnect = WinHttpConnect(hSession, L"127.0.0.1",
             8983, 0);
-    // below 300 bytes measn no found.
-    output.clear();
 
     string plateNumber = requestJson["plate_number"].get<std::string>();
     wstring wplate = wstring(plateNumber.begin(), plateNumber.end());
@@ -159,7 +156,7 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
     responseJson["plate_uid"] = requestJson["plate_uid"];
     responseJson["response_code"] = 200;
     responseJson["response_message"] = "query succeed.";
-    cout << requestJson << endl << endl << responseJson << endl;
+    //cout << requestJson << endl << endl << responseJson << endl;
 
     return 0;
 }
