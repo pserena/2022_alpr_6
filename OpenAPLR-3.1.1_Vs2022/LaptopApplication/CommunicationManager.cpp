@@ -44,7 +44,9 @@ int CommunicationManager::networkConnectClose(void) {
 }
 
 int CommunicationManager::retryNetworkConnect(void) {
-    //networkConnectClose();
+    networkConnectClose();
+    int result = 0; AcceptTcpConnection(TcpConnectedPort);
+    printf("retryNetworkConnect %d\n", result);
     networkConnect();
     if (!userID.empty()) {
         authenticate(userID, userPass);
@@ -57,16 +59,21 @@ int CommunicationManager::sendCommunicationData(unsigned char* data) {
     unsigned short SendMsgHdr, SendPlateStringLength;
     SendPlateStringLength = (unsigned short)strlen((char*)data) + 1;
     SendMsgHdr = htons(SendPlateStringLength);
-    if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) == sizeof(SendPlateStringLength)) {
+    if (TcpConnectedPort == NULL) {
+        retryNetworkConnect();
+    }
+    else if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) == sizeof(SendPlateStringLength)) {
         if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)data, SendPlateStringLength)) != SendPlateStringLength) {
             printf("WriteDataTcp %d\n", result);
             retryNetworkConnect();
+        }
+        else {
+            printf("sent ->%s\n", data);
         }
     } else {
         printf("WriteDataTcp %d\n", result);
         retryNetworkConnect();
     }
-    printf("sent ->%s\n", data);
     return 0;
 }
 
@@ -80,9 +87,15 @@ int CommunicationManager::receiveAuthenticateData(char* data)
 
 int CommunicationManager::receiveCommunicationData(char* data)
 {
-    int result = GetResponses(data);
-    if (result < 0)
+    if (TcpConnectedPort == NULL) {
         retryNetworkConnect();
+        return -1;
+    }
+    else {
+        int result = GetResponses(data);
+        if (result < 0)
+            retryNetworkConnect();
+    }
     return 0;
 }
 
