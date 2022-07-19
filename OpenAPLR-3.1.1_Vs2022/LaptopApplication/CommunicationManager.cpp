@@ -45,9 +45,8 @@ int CommunicationManager::networkConnectClose(void) {
 
 int CommunicationManager::retryNetworkConnect(void) {
     networkConnectClose();
-    int result = 0; AcceptTcpConnection(TcpConnectedPort);
-    printf("retryNetworkConnect %d\n", result);
     networkConnect();
+    printf("retryNetworkConnect \n");
     if (!userID.empty()) {
         authenticate(userID, userPass);
     }

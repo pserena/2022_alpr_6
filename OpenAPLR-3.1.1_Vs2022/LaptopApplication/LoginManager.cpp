@@ -64,7 +64,9 @@ int LoginManager::checkLoginSuccess(void) {
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		if (retryCount++ > 50) {
+			commMan->retryNetworkConnect();
 			inputLoginInfo();
+			printf("checkLogin Fail timeout \n");
 			retryCount = 0;
 		}
 	}
