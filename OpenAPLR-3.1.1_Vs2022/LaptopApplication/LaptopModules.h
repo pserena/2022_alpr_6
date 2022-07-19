@@ -106,13 +106,18 @@ namespace client
 
 		int networkConnect(void);
 		int networkConnectClose(void);
+		int retryNetworkConnectSave(bool saveRetry);
 		int retryNetworkConnect(void);
 		int sendCommunicationData(unsigned char* data);
 		int receiveAuthenticateData(char* data);
 		int receiveCommunicationData(char* data);
 		int authenticate(string strID, string strPw);
 		int sendRecognizedInfo(string rs, int puid);
+
+		bool saveRetry = false;
 	private:
+		void reconnectThreadStart(void);
+		void timer_start(std::function<void(CommunicationManager*)> func, unsigned int interval);
 	};
 
 	class VehicleInfoManager {
@@ -122,7 +127,7 @@ namespace client
 
 		int linkCommMag(CommunicationManager* comMan);
 		int VehicleInfoReceiveStart(void);
-		int sendVehicleInfo(unsigned char* vehicleData);
+		//int sendVehicleInfo(unsigned char* vehicleData);
 		int receiveCommunicationData(void);
 		int setRecognizedInfo(string rs, int puid, Mat pimg);
 	private:

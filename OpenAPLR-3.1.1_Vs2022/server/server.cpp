@@ -64,16 +64,13 @@ bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
 
 mutex send_lock_;
 void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string response) {
-    char buf[8192];
-    size_t SendMsgHdr = ntohs(response.length());
-    strcpy_s(buf, response.c_str());
+    size_t SendMsgHdr = ntohs((u_short)response.length());
     //cout << "--------- length : " << response.length() << "----------" << endl;
     //cout << response << endl;
     {
         lock_guard<mutex> l(send_lock_);
-        WriteDataTcp(tcp_connected_port.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
-        WriteDataTcp(tcp_connected_port.get(), (unsigned char*)buf, response.length());
-        //cout << "[sendResponse] " << buf << endl;
+        WriteDataTcp(tcp_connected_port.get(), (const unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
+        WriteDataTcp(tcp_connected_port.get(), (const unsigned char*)response.c_str(), response.length());
     }
 }
 
@@ -205,7 +202,7 @@ int main()
                 auto read_size = ReadDataTcp(connected_fd.get(), (unsigned char*)&DataString, data_length);
 				if (read_size != data_length)
 				{
-					printf("ReadDataTcp 2 error %d vs %d\n", read_size, data_length);
+					printf("ReadDataTcp 2 error %lld vs %d\n", read_size, data_length);
 					continue;
 				}
 				//printf("Data is : %s\n", DataString);

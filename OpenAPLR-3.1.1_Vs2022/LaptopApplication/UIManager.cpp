@@ -226,7 +226,7 @@ static void puttext_info(Mat plate, const char* d1, const char* d2, const char* 
 void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo)
 {
     Mat image, info, overlay;
-
+    //imshow("Laptop Application", pimag);
     // image = imread(cropped_image);
 
     info.copyTo(overlay);

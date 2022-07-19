@@ -10,7 +10,6 @@ map<string, int> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
-char retPlateInfo1[8192] = { 0, };
 
 VehicleInfoManager::VehicleInfoManager(UIManager* uiManager) {
 	ui = uiManager;
@@ -31,12 +30,13 @@ int VehicleInfoManager::VehicleInfoReceiveStart(void) {
 	return 0;
 }
 
+/*
 int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 	printf("sendVehicleInfo ->%s\n", vehicleData);
 	commMan->sendCommunicationData(vehicleData);
 
 	return 0;
-}
+}*/
 
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
@@ -55,8 +55,6 @@ int VehicleInfoManager::receiveCommunicationData(void)
 	int result = commMan->receiveCommunicationData(ResponseBuffer);
 	if (ResponseBuffer[0] != 0) {
 		printf("receiveCommunicationData JOSN %s\n", ResponseBuffer);
-		//string id;
-		//cin >> id;
 		try {
 			json responseJson = json::parse(ResponseBuffer);
 			if (responseJson["request_type"] == "query") {
