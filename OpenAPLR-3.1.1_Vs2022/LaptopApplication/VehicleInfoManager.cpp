@@ -2,22 +2,29 @@
 #include <thread>
 #include <map>
 #include <iostream>
+#include <fstream>
 #include "json.hpp"
 
 using namespace client;
 using json = nlohmann::json;
 
-map<string, int> mapVehicleNum;
+map<string, pair<int, ULONGLONG>> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
+vector<int> matchVehicleNum;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
 
 VehicleInfoManager::VehicleInfoManager(UIManager* uiManager) {
 	ui = uiManager;
 	commMan = NULL;
+	//tm* tm = localtime(time(NULL));
+	log_output_.open("6team.log", std::ofstream::out);
+	
 }
 
 VehicleInfoManager::~VehicleInfoManager(void) {
+	if (log_output_.is_open())
+		log_output_.close();
 }
 
 int VehicleInfoManager::linkCommMag(CommunicationManager* linkCommMan) {
@@ -41,7 +48,8 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
-	mapVehicleNum.insert(make_pair(rs, puid));
+	//mapVehicleNum.insert(make_pair(rs, make_pair(puid, time(NULL)));
+	mapVehicleNum[rs] = make_pair(puid, GetTickCount64());
 	if (!pimag.empty()) {
 		Mat copy;
 		pimag.copyTo(copy);
@@ -61,14 +69,52 @@ int VehicleInfoManager::receiveCommunicationData(void)
 		//string id;
 		//cin >> id;
 		try {
+			//cout << ResponseBuffer << endl;
 			json responseJson = json::parse(ResponseBuffer);
 			if (responseJson["request_type"] == "query") {
 				string plate_number = responseJson["plate_number"];
-				int puid = mapVehicleNum.find(plate_number)->second;
-				Mat pimag = mapVehicleImg.find(puid)->second;
-				json jsonRetPlateInfo = responseJson["response"];
+				int puid = mapVehicleNum.find(plate_number)->second.first;
+				if (responseJson["response_code"] == 200 && responseJson["response"]["numFound"] != 0) {
+					string strPlateUID = responseJson["plate_uid"];
+					int nPlateUID = stoi(strPlateUID);
+					auto it = find(matchVehicleNum.begin(), matchVehicleNum.end(), nPlateUID);
+					if (it == matchVehicleNum.end()) {
+						const string& query = responseJson["responseHeader"]["params"]["q"];
+						if (query.find("~") == string::npos) {
+							matchVehicleNum.push_back(nPlateUID);
+						}
+						
+						Mat pimag = mapVehicleImg.find(puid)->second;
+						json jsonRetPlateInfo = responseJson["response"];
 
-				ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo);
+						ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo);
+					}
+					//else {
+					//	printf("\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %d\n\n\n", nPlateUID);
+					//}
+				}
+
+				vector<string> vecPlateNum;
+				auto request_time = mapVehicleNum.find(plate_number)->second.second;
+				int num = responseJson["response"]["docs"].size();
+				for (int i = 0; i < num; i++) {
+					string plate_number = responseJson["response"]["docs"].at(i)["plate_number"].at(0).get<string>();
+					vecPlateNum.push_back(plate_number);
+				}
+				cout << "REQUEST " << request_time << " " << plate_number << endl;
+				cout << "RESPONSE " << GetTickCount64();
+				for (auto& s : vecPlateNum) {
+					cout << " " << s;
+				}
+				cout << endl;
+				if (log_output_.is_open()) {
+					log_output_ << "REQUEST " << request_time << " " << plate_number << endl;
+					log_output_ << "RESPONSE " << GetTickCount64();
+					for (auto& s : vecPlateNum) {
+						log_output_ << " " << s;
+					}
+					log_output_ << endl;
+				}
 			}
 		}
 		catch (json::parse_error& ex)

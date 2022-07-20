@@ -6,6 +6,8 @@
 #include <opencv2/highgui.hpp>
 #include <functional>
 #include <map>
+#include <fstream>
+
 
 #include "alpr.h"
 #include "json.hpp"
@@ -43,8 +45,14 @@ namespace client
 	public:
 		Mat video;
 		Mat vinfo;
+
+		// normal
 		Mat vtext;
 		Mat vimg;
+
+		// alert
+		Mat atext;
+		Mat aimg;
 
 		UIManager(void);
 		virtual ~UIManager(void) {
@@ -137,6 +145,7 @@ namespace client
 		UIManager* ui;
 		void recevieThreadStart(void);
 		void timer_start(std::function<void(VehicleInfoManager*)> func, unsigned int interval);
+		ofstream log_output_;
 	};
 
 	class ALPRProcessor : public Alpr {

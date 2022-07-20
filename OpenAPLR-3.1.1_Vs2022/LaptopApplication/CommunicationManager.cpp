@@ -29,9 +29,13 @@ int CommunicationManager::networkConnect(void) {
     const string& ipaddr = ipaddr_.empty() ? "127.0.0.1" : ipaddr_;
     if ((TcpConnectedPort = OpenTcpConnection(ipaddr.c_str(), "2222")) == NULL) { 
         std::cout << "Connection Failed to " << ipaddr << std::endl;
+        retryNetworkConnectSave(true);
         return (-1);
-    } else
+    }
+    else {
+        retryNetworkConnectSave(false);
         std::cout << "Connected to " << ipaddr << std::endl;
+    }
     return 0;
 }
 
@@ -52,7 +56,6 @@ int CommunicationManager::retryNetworkConnect(void) {
     printf("retryNetworkConnect start \n");
     networkConnectClose();
     if (networkConnect() >=0) {
-        saveRetry = false;
         if (!userID.empty()) {
             authenticate(userID, userPass);
         }
@@ -113,10 +116,12 @@ int CommunicationManager::receiveCommunicationData(char* data)
             retryNetworkConnectSave(true);
             return -1;
         }
+#if 0
         else {
+            //cout << data << end;
             json responseJson = json::parse(data);
             if (responseJson["request_type"] == "query") {
-                if (responseJson["response_code"] == 200 && responseJson["numFound"] != 0)
+                if (responseJson["response_code"] == 200 && responseJson["response"]["numFound"] != 0)
                 {
                     clock_t recTime = time(NULL);
                     vector<string> vecPlateNum;
@@ -131,6 +136,7 @@ int CommunicationManager::receiveCommunicationData(char* data)
                 }
             }
         }
+#endif
     }
     return 0;
 }

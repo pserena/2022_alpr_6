@@ -19,7 +19,9 @@ using json = nlohmann::json;
 UIManager::UIManager()
 {
     vimg = Mat(100, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
-    vtext = Mat(380, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
+    vtext = Mat(140, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
+    aimg = Mat(100, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
+    atext = Mat(140, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
     vinfo = Mat(VI_HEIGHT, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
 }
 
@@ -206,27 +208,33 @@ void UIManager::PrintErrMsg(std::string msg)
 }
 
 static void puttext_info(Mat plate, const char* d1, const char* d2, const char* d3,
-    const char* d4, int x, int y)
+    const char* d4, const char* d5, int x, int y)
 {   
     cv::putText(plate, d1,
-        cv::Point(x, y + 15),
+        cv::Point(x, y + 10),
         FONT_HERSHEY_DUPLEX, 0.8,
         Scalar(102, 0, 0), 1, LINE_AA, false
     );
-    
+
     cv::putText(plate, d2,
+        cv::Point(x - 20, y + 30),
+        FONT_HERSHEY_DUPLEX, 0.4,
+        Scalar(0, 0, 255), 1, LINE_AA, false
+    );
+    
+    cv::putText(plate, d3,
         cv::Point(x + 130, y),
         FONT_HERSHEY_DUPLEX, 0.4,
         Scalar(0, 51, 0), 0, LINE_AA, false
     );
 
-    cv::putText(plate, d3,
+    cv::putText(plate, d4,
         cv::Point(x + 130, y + 15),
         FONT_HERSHEY_DUPLEX, 0.4,
         Scalar(0, 51, 0), 0, LINE_AA, false
     );
 
-    cv::putText(plate, d4,
+    cv::putText(plate, d5,
         cv::Point(x + 130, y + 30),
         FONT_HERSHEY_DUPLEX, 0.4,
         Scalar(102, 0, 102), 0, LINE_AA, false
@@ -241,34 +249,19 @@ void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonR
         return;
 
     Mat info(vtext.size(), CV_8UC3, Scalar(255, 255, 255));
+    Mat ainfo(atext.size(), CV_8UC3, Scalar(255, 255, 255));
+    int alert_count = 0;
+    int vehicle_count = 0;
 
     for (int i = 0; i < docs.size(); ++i)
     {
-        string plate_num = docs.at(i)["plate_number"].at(0).get<std::string>();
-        string reg_expiration = docs.at(i)["reg_expiration"].at(0).get<std::string>();
         string status = docs.at(i)["status"].at(0).get<std::string>();
-        string owner_name = docs.at(i)["owner_name"].at(0).get<std::string>();
-        string owner_birthdate = docs.at(i)["owner_birthdate"].at(0).get<std::string>();
-        string owner_address_1 = docs.at(i)["owner_address_1"].at(0).get<std::string>();
-        string owner_address_2 = docs.at(i)["owner_address_2"].at(0).get<std::string>();
-        
+        string plate_num = docs.at(i)["plate_number"].at(0).get<std::string>();
+
         int vehicle_year = docs.at(i)["vehicle_year"].at(0).get<int>();
         string vehicle_make = docs.at(i)["vehicle_make"].at(0).get<std::string>();
         string vehicle_model = docs.at(i)["vehicle_model"].at(0).get<std::string>();
         string vehicle_color = docs.at(i)["vehicle_color"].at(0).get<std::string>();
-        
-        char owner_info[256];
-        sprintf_s(owner_info, sizeof(owner_info), "%s %s %s",
-            reg_expiration.c_str(),
-            owner_name.c_str(),
-            owner_birthdate.c_str()
-        );
-
-        char owner_address[256];
-        sprintf_s(owner_address, sizeof(owner_address), "%s %s",
-            owner_address_1.c_str(),
-            owner_address_2.c_str()
-        );
 
         char vehicle_info[256];
         sprintf_s(vehicle_info, sizeof(vehicle_info), "%d %s %s %s",
@@ -277,24 +270,77 @@ void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonR
             vehicle_model.c_str(),
             vehicle_color.c_str()
         );
-        
-        puttext_info(info, plate_num.c_str(), owner_info, owner_address, vehicle_info,
-            15, 25 + i * 45);
+
+        if (strcmp(status.c_str(), "No Wants / Warrants")) {
+            string reg_expiration = docs.at(i)["reg_expiration"].at(0).get<std::string>();
+            string owner_name = docs.at(i)["owner_name"].at(0).get<std::string>();
+            string owner_birthdate = docs.at(i)["owner_birthdate"].at(0).get<std::string>();
+            string owner_address_1 = docs.at(i)["owner_address_1"].at(0).get<std::string>();
+            string owner_address_2 = docs.at(i)["owner_address_2"].at(0).get<std::string>();
+
+            char aligned_status[20];
+            string space = "";
+            status.erase(remove(status.begin(), status.end(), ' '));
+            int space_length = (sizeof(aligned_status) - status.length()) / 2;
+            if (space_length > 0)
+                space.append(space_length, ' ');
+
+            printf("status %d space %d %d\n", status.length(), space_length, space.length());
+
+            sprintf_s(aligned_status, sizeof(aligned_status), "%s %s", space.c_str(), status.c_str());
+
+            char owner_info[256];
+            sprintf_s(owner_info, sizeof(owner_info), "%s %s %s",
+                reg_expiration.c_str(),
+                owner_name.c_str(),
+                owner_birthdate.c_str()
+            );
+
+            char owner_address[256];
+            sprintf_s(owner_address, sizeof(owner_address), "%s %s",
+                owner_address_1.c_str(),
+                owner_address_2.c_str()
+            );
+
+            puttext_info(ainfo, plate_num.c_str(), aligned_status, owner_info, owner_address, vehicle_info,
+                15, 25 + alert_count * 45);
+
+            alert_count++;
+        } else {
+            cv::putText(info, plate_num.c_str(),
+                cv::Point(15, 25 + vehicle_count * 45),
+                FONT_HERSHEY_DUPLEX, 0.8,
+                Scalar(102, 0, 0), 1, LINE_AA, false
+            );
+            cv::putText(info, vehicle_info,
+                cv::Point(145, 20 + vehicle_count * 45),
+                FONT_HERSHEY_DUPLEX, 0.4,
+                Scalar(102, 0, 102), 0, LINE_AA, false
+            );
+
+            vehicle_count++;
+        } 
     }
 
-    info.copyTo(vtext);
+    cv::resize(pimag, pimag, Size(VI_WIDTH, 100));
 
-    cout << "pimag row: " << pimag.rows << " col: " << pimag.cols << endl;
-
-    resize(pimag, pimag, Size(VI_WIDTH, 100));
-    pimag.copyTo(vimg);
+    if (vehicle_count) {
+        info.copyTo(vtext);
+        pimag.copyTo(vimg);
+    }
+    if (alert_count) {
+        ainfo.copyTo(atext);
+        pimag.copyTo(aimg);
+    }
 }
 
 void UIManager::UpdateVideo(void)
 {
-    Mat ui;
+    Mat ui, vmerge, amerge;
 
-    vconcat(vimg, vtext, vinfo);
+    vconcat(vimg, vtext, vmerge);
+    vconcat(aimg, atext, amerge);
+    vconcat(vmerge, amerge, vinfo);
     hconcat(video, vinfo, ui);
 
     imshow("Laptop Application", ui);

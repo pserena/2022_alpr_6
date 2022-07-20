@@ -18,12 +18,13 @@ struct LaptopConfig {
 };
 
 LaptopConfig loadConfig() {
-	char buf[4096];
+	char buf[4096] = { 0 };
 	LaptopConfig lc;
 	ifstream is("laptop_config.json");
 	if (is.is_open()) {
 		is.read(buf, sizeof(buf));
 		is.close();
+		//cout << buf << endl;
 		try {
 			json s = json::parse(buf);
 			lc.ipaddr = s["server_ip"];
@@ -35,6 +36,7 @@ LaptopConfig loadConfig() {
 	}
 	return lc;
 }
+
 int main()
 {
     std::string county = "us";
