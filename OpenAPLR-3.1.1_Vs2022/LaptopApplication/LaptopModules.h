@@ -43,8 +43,14 @@ namespace client
 	public:
 		Mat video;
 		Mat vinfo;
+
+		// normal
 		Mat vtext;
 		Mat vimg;
+
+		// alert
+		Mat atext;
+		Mat aimg;
 
 		UIManager(void);
 		virtual ~UIManager(void) {
