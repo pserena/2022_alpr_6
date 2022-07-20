@@ -15,7 +15,7 @@ using json = nlohmann::json;
 using namespace std;
 
 VehicleInfoFinder::VehicleInfoFinder() {
-    char buf[4096];
+    char buf[4096] = { 0 };
     ifstream is("server_config.json");
     if (is.is_open()) {
         is.read(buf, sizeof(buf));
