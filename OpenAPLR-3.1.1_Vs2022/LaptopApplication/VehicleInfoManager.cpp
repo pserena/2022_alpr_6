@@ -7,7 +7,7 @@
 using namespace client;
 using json = nlohmann::json;
 
-map<string, pair<int, time_t>> mapVehicleNum;
+map<string, pair<int, ULONGLONG>> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
 vector<int> matchVehicleNum;
 
@@ -43,7 +43,7 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
 	//mapVehicleNum.insert(make_pair(rs, make_pair(puid, time(NULL)));
-	mapVehicleNum[rs] = make_pair(puid, time(NULL));
+	mapVehicleNum[rs] = make_pair(puid, GetTickCount64());
 	if (!pimag.empty()) {
 		Mat copy;
 		pimag.copyTo(copy);
@@ -100,7 +100,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 					vecPlateNum.push_back(plate_number);
 				}
 				cout << "REQUEST " << request_time << " " << plate_number << endl;
-				cout << "RESPONSE " << time(NULL);
+				cout << "RESPONSE " << GetTickCount64();
 				for (auto& s : vecPlateNum) {
 					cout << " " << s;
 				}
