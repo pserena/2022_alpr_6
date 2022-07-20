@@ -73,7 +73,6 @@ int VehicleInfoManager::receiveCommunicationData(void)
 						if (query.find("~") == string::npos) {
 							matchVehicleNum.push_back(nPlateUID);
 						}
-						matchVehicleNum.push_back(nPlateUID);
 						string plate_number = responseJson["plate_number"];
 						int puid = mapVehicleNum.find(plate_number)->second;
 						Mat pimag = mapVehicleImg.find(puid)->second;
