@@ -135,9 +135,7 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 
 		double dur = CLOCK() - start;
 		sprintf_s(text, "avg time per frame %f ms. fps %f. frameno = %d", avgdur(dur), avgfps(), frameno++);
-	}
-
-	
+	}	
 }
 
 void IOSourceManager::SaveOutputVideo(Mat frame)
