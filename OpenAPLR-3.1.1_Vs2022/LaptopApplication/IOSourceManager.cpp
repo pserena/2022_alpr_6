@@ -101,8 +101,10 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 		}
 		else cap >> *frame;
 
-		if (frame->empty())
+		if (frame->empty()) {
+			MessageBox(NULL, TEXT("playback is complete"), TEXT("systeam alert"), MB_OK);
 			break;
+		}
 
 		if (videosavemode != VideoSaveMode::vSaveWithNoALPR)
 		{
@@ -133,7 +135,7 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 
 		double dur = CLOCK() - start;
 		sprintf_s(text, "avg time per frame %f ms. fps %f. frameno = %d", avgdur(dur), avgfps(), frameno++);
-	}
+	}	
 }
 
 void IOSourceManager::SaveOutputVideo(Mat frame)

@@ -13,6 +13,16 @@ using namespace std;
 using namespace client;
 using json = nlohmann::json;
 
+#define VI_WIDTH 520
+#define VI_HEIGHT 480
+
+UIManager::UIManager()
+{
+    vimg = Mat(100, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
+    vtext = Mat(380, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
+    vinfo = Mat(VI_HEIGHT, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
+}
+
 static bool getconchar(KEY_EVENT_RECORD& krec)
 {
     DWORD cc;
@@ -199,27 +209,27 @@ static void puttext_info(Mat plate, const char* d1, const char* d2, const char* 
     const char* d4, int x, int y)
 {   
     cv::putText(plate, d1,
-        cv::Point(x, y),
-        FONT_HERSHEY_COMPLEX_SMALL, 0.4,
-        Scalar(255, 0, 0), 1, LINE_AA, false
+        cv::Point(x, y + 15),
+        FONT_HERSHEY_DUPLEX, 0.8,
+        Scalar(102, 0, 0), 1, LINE_AA, false
     );
     
     cv::putText(plate, d2,
-        cv::Point(x + 50, y),
-        FONT_HERSHEY_COMPLEX_SMALL, 0.4,
-        Scalar(0, 255, 0), 0, LINE_AA, false
+        cv::Point(x + 130, y),
+        FONT_HERSHEY_DUPLEX, 0.4,
+        Scalar(0, 51, 0), 0, LINE_AA, false
     );
 
     cv::putText(plate, d3,
-        cv::Point(x, y + 10),
-        FONT_HERSHEY_COMPLEX_SMALL, 0.4,
-        Scalar(255, 224, 145), 0, LINE_AA, false
+        cv::Point(x + 130, y + 15),
+        FONT_HERSHEY_DUPLEX, 0.4,
+        Scalar(0, 51, 0), 0, LINE_AA, false
     );
 
     cv::putText(plate, d4,
-        cv::Point(x + 250, y + 10),
-        FONT_HERSHEY_COMPLEX_SMALL, 0.4,
-        Scalar(20, 20, 255), 1.3, LINE_AA, false
+        cv::Point(x + 130, y + 30),
+        FONT_HERSHEY_DUPLEX, 0.4,
+        Scalar(102, 0, 102), 0, LINE_AA, false
     );
 }
 
@@ -248,11 +258,14 @@ void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonR
         string vehicle_color = docs.at(i)["vehicle_color"].at(0).get<std::string>();
         
         char owner_info[256];
-        sprintf_s(owner_info, sizeof(owner_info), "%s %s %s %s %s",
-            // status,
+        sprintf_s(owner_info, sizeof(owner_info), "%s %s %s",
             reg_expiration.c_str(),
             owner_name.c_str(),
-            owner_birthdate.c_str(),
+            owner_birthdate.c_str()
+        );
+
+        char owner_address[256];
+        sprintf_s(owner_address, sizeof(owner_address), "%s %s",
             owner_address_1.c_str(),
             owner_address_2.c_str()
         );
@@ -265,15 +278,15 @@ void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonR
             vehicle_color.c_str()
         );
         
-        puttext_info(info, plate_num.c_str(), owner_info, vehicle_info, status.c_str(),
-            15, 25 + i * 20);
+        puttext_info(info, plate_num.c_str(), owner_info, owner_address, vehicle_info,
+            15, 25 + i * 45);
     }
 
     info.copyTo(vtext);
 
     cout << "pimag row: " << pimag.rows << " col: " << pimag.cols << endl;
 
-    resize(pimag, pimag, Size(520, 100));
+    resize(pimag, pimag, Size(VI_WIDTH, 100));
     pimag.copyTo(vimg);
 }
 
