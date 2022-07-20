@@ -25,7 +25,12 @@ RequestHandler::~RequestHandler() {
 void RequestHandler::plateQueryHandler(UINT_PTR id, nlohmann::json requestJson, function<void(string)> callback) {
 	//cout << "Num of thread : " << thread_num_ << endl;
 	nlohmann::json responseJson;
-	vif_->getVehicleInformation(requestJson, responseJson);
+	int result = vif_->getVehicleInformation(requestJson, responseJson);
+	if (result < 0)
+	{
+		return;
+	}
+
 	//cout << " Respnose : " << responseJson << endl;
 	if (responseJson["response"]["numFound"] == 0) {
 		++statistics_[SessionLoginAccounts[id]].no_match;

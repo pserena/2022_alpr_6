@@ -78,73 +78,81 @@ int VehicleInfoFinder::getVehicleInformation(const nlohmann::json& requestJson, 
     wstring url = L"/solr/sw_alpr_up/select?rows=5&q=plate_number:";
     int cnt = 0;
 
-    do {
-        wstring query_string = url + priority[cnt];
+    try {
+
+        do {
+            wstring query_string = url + priority[cnt];
    
-        output.clear();
+            output.clear();
 
-        // Create an HTTP request handle.
-        if (hConnect)
-            hRequest = WinHttpOpenRequest(hConnect, L"GET", query_string.c_str(),
-                NULL, WINHTTP_NO_REFERER,
-                WINHTTP_DEFAULT_ACCEPT_TYPES,
-                0);
+            // Create an HTTP request handle.
+            if (hConnect)
+                hRequest = WinHttpOpenRequest(hConnect, L"GET", query_string.c_str(),
+                    NULL, WINHTTP_NO_REFERER,
+                    WINHTTP_DEFAULT_ACCEPT_TYPES,
+                    0);
 
-        // Send a request.
-        if (hRequest)
-            bResults = WinHttpSendRequest(hRequest,
-                WINHTTP_NO_ADDITIONAL_HEADERS, 0,
-                WINHTTP_NO_REQUEST_DATA, 0,
-                0, 0);
+            // Send a request.
+            if (hRequest)
+                bResults = WinHttpSendRequest(hRequest,
+                    WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+                    WINHTTP_NO_REQUEST_DATA, 0,
+                    0, 0);
 
-        // End the request.
-        if (bResults)
-            bResults = WinHttpReceiveResponse(hRequest, NULL);
+            // End the request.
+            if (bResults)
+                bResults = WinHttpReceiveResponse(hRequest, NULL);
 
-        // Keep checking for data until there is nothing left.
-        if (bResults)
-        {
-            do
+            // Keep checking for data until there is nothing left.
+            if (bResults)
             {
-                // Check for available data.
-                dwSize = 0;
-                if (!WinHttpQueryDataAvailable(hRequest, &dwSize))
-                    printf("Error %u in WinHttpQueryDataAvailable.\n",
-                        GetLastError());
-
-                // Allocate space for the buffer.
-                pszOutBuffer = new char[dwSize + 1];
-                if (!pszOutBuffer)
+                do
                 {
-                    printf("Out of memory\n");
+                    // Check for available data.
                     dwSize = 0;
-                }
-                else
-                {
-                    // Read the data.
-                    ZeroMemory(pszOutBuffer, dwSize + 1);
+                    if (!WinHttpQueryDataAvailable(hRequest, &dwSize))
+                        printf("Error %u in WinHttpQueryDataAvailable.\n",
+                            GetLastError());
 
-                    if (!WinHttpReadData(hRequest, (LPVOID)pszOutBuffer,
-                        dwSize, &dwDownloaded))
-                        printf("Error %u in WinHttpReadData.\n", GetLastError());
+                    // Allocate space for the buffer.
+                    pszOutBuffer = new char[dwSize + 1];
+                    if (!pszOutBuffer)
+                    {
+                        printf("Out of memory\n");
+                        dwSize = 0;
+                    }
+                    else
+                    {
+                        // Read the data.
+                        ZeroMemory(pszOutBuffer, dwSize + 1);
 
-                    // TODO : This is memcpy. If there are performance issue, need to way to avoid memcpy.
-                    output += pszOutBuffer;
-                    // Free the memory allocated to the buffer.
-                    delete[] pszOutBuffer;
-                }
-            } while (dwSize > 0);
-        }
+                        if (!WinHttpReadData(hRequest, (LPVOID)pszOutBuffer,
+                            dwSize, &dwDownloaded))
+                            printf("Error %u in WinHttpReadData.\n", GetLastError());
 
-        //cout << "[getVehicleInformation] " << output << endl;
+                        // TODO : This is memcpy. If there are performance issue, need to way to avoid memcpy.
+                        output += pszOutBuffer;
+                        // Free the memory allocated to the buffer.
+                        delete[] pszOutBuffer;
+                    }
+                } while (dwSize > 0);
+            }
 
-        responseJson = json::parse(output.c_str());
-        found = responseJson["response"]["numFound"];
+            //cout << "[getVehicleInformation] " << output << endl;
 
-        if ( found > 0)
-            break;
+            responseJson = json::parse(output.c_str());
+            found = responseJson["response"]["numFound"];
 
-    } while (++cnt < priority.size());
+            if ( found > 0)
+                break;
+
+        } while (++cnt < priority.size());
+    }
+    catch (...)
+    {
+        cerr << "the db is not working. check the status of the db." << endl;
+        return -1;    
+    }
 
     // Report any errors.
     if (!bResults)
