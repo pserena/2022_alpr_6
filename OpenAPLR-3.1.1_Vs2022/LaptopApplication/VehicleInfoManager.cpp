@@ -2,6 +2,7 @@
 #include <thread>
 #include <map>
 #include <iostream>
+#include <fstream>
 #include "json.hpp"
 
 using namespace client;
@@ -16,9 +17,14 @@ static int receiveThread(VehicleInfoManager* vehicleMan);
 VehicleInfoManager::VehicleInfoManager(UIManager* uiManager) {
 	ui = uiManager;
 	commMan = NULL;
+	//tm* tm = localtime(time(NULL));
+	log_output_.open("6team.log", std::ofstream::out);
+	
 }
 
 VehicleInfoManager::~VehicleInfoManager(void) {
+	if (log_output_.is_open())
+		log_output_.close();
 }
 
 int VehicleInfoManager::linkCommMag(CommunicationManager* linkCommMan) {
@@ -101,6 +107,14 @@ int VehicleInfoManager::receiveCommunicationData(void)
 					cout << " " << s;
 				}
 				cout << endl;
+				if (log_output_.is_open()) {
+					log_output_ << "REQUEST " << request_time << " " << plate_number << endl;
+					log_output_ << "RESPONSE " << GetTickCount64();
+					for (auto& s : vecPlateNum) {
+						log_output_ << " " << s;
+					}
+					log_output_ << endl;
+				}
 			}
 		}
 		catch (json::parse_error& ex)
