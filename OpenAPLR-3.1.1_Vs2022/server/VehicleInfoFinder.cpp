@@ -20,12 +20,18 @@ VehicleInfoFinder::VehicleInfoFinder() {
     if (is.is_open()) {
         is.read(buf, sizeof(buf));
         is.close();
-        json s = json::parse(buf);
-        rules = move(s["search"].get<vector<string>>());
+        try {
+            json s = json::parse(buf);
+            rules = move(s["search"].get<vector<string>>());
 #if 0
-        for (auto i : rules)
-            cout << i << endl;
+            for (auto i : rules)
+                cout << i << endl;
 #endif
+        }
+        catch (json::parse_error& ex) {
+            cout << "Failed to parse server_config.json" << endl;
+            return;
+        }
     }
 }
 

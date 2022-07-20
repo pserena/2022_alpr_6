@@ -24,8 +24,14 @@ LaptopConfig loadConfig() {
 	if (is.is_open()) {
 		is.read(buf, sizeof(buf));
 		is.close();
-		json s = json::parse(buf);
-		lc.ipaddr = s["server_ip"];
+		try {
+			json s = json::parse(buf);
+			lc.ipaddr = s["server_ip"];
+		}
+		catch (json::parse_error& ex) {
+			cout << "Failed to parsig laptop_config.json" << endl;
+			return lc;
+		}
 	}
 	return lc;
 }
