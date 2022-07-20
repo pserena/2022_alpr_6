@@ -7,7 +7,7 @@
 using namespace client;
 using json = nlohmann::json;
 
-map<string, int> mapVehicleNum;
+map<string, pair<int, time_t>> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
 vector<int> matchVehicleNum;
 
@@ -42,7 +42,8 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
-	mapVehicleNum.insert(make_pair(rs, puid));
+	//mapVehicleNum.insert(make_pair(rs, make_pair(puid, time(NULL)));
+	mapVehicleNum[rs] = make_pair(puid, time(NULL));
 	if (!pimag.empty()) {
 		Mat copy;
 		pimag.copyTo(copy);
@@ -62,8 +63,11 @@ int VehicleInfoManager::receiveCommunicationData(void)
 		//string id;
 		//cin >> id;
 		try {
+			//cout << ResponseBuffer << endl;
 			json responseJson = json::parse(ResponseBuffer);
 			if (responseJson["request_type"] == "query") {
+				string plate_number = responseJson["plate_number"];
+				int puid = mapVehicleNum.find(plate_number)->second.first;
 				if (responseJson["response_code"] == 200 && responseJson["response"]["numFound"] != 0) {
 					string strPlateUID = responseJson["plate_uid"];
 					int nPlateUID = stoi(strPlateUID);
@@ -73,8 +77,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 						if (query.find("~") == string::npos) {
 							matchVehicleNum.push_back(nPlateUID);
 						}
-						string plate_number = responseJson["plate_number"];
-						int puid = mapVehicleNum.find(plate_number)->second;
+						
 						Mat pimag = mapVehicleImg.find(puid)->second;
 						json jsonRetPlateInfo = responseJson["response"];
 
@@ -84,6 +87,24 @@ int VehicleInfoManager::receiveCommunicationData(void)
 					//	printf("\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %d\n\n\n", nPlateUID);
 					//}
 				}
+
+				Mat pimag = mapVehicleImg.find(puid)->second;
+				json jsonRetPlateInfo = responseJson["response"];
+				ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo);
+
+				vector<string> vecPlateNum;
+				auto request_time = mapVehicleNum.find(plate_number)->second.second;
+				int num = responseJson["response"]["docs"].size();
+				for (int i = 0; i < num; i++) {
+					string plate_number = responseJson["response"]["docs"].at(i)["plate_number"].at(0).get<string>();
+					vecPlateNum.push_back(plate_number);
+				}
+				cout << "REQUEST " << request_time << " " << plate_number << endl;
+				cout << "RESPONSE " << time(NULL);
+				for (auto& s : vecPlateNum) {
+					cout << " " << s;
+				}
+				cout << endl;
 			}
 		}
 		catch (json::parse_error& ex)
