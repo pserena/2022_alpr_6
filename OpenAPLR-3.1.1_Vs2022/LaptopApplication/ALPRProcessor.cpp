@@ -67,7 +67,7 @@ void ALPRProcessor::process(Mat frame)
 			Mat plate_cropped;
 			string rs = results.plates[i].bestPlate.characters.c_str();
 
-			if (process_count == 0 || abs(last_point.x - psi[max_point_num].x) > 80)
+			if (process_count == 0 || abs(last_point.x - psi[0].x) > 80)
 			{
 				plate_uid++;
 				plate_cropped = frame(rect & totalrect);
@@ -78,7 +78,7 @@ void ALPRProcessor::process(Mat frame)
 
 		strcpy_s(LastPlates[CurrentPlate], results.plates[i].bestPlate.characters.c_str());
 		CurrentPlate = (CurrentPlate + 1) % NUMBEROFPREVIOUSPLATES;
-		last_point = psi[max_point_num];
+		last_point = psi[0];
 		process_count++;
 	}
 }
