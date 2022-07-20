@@ -116,7 +116,9 @@ int CommunicationManager::receiveCommunicationData(char* data)
             retryNetworkConnectSave(true);
             return -1;
         }
+#if 0
         else {
+            //cout << data << end;
             json responseJson = json::parse(data);
             if (responseJson["request_type"] == "query") {
                 if (responseJson["response_code"] == 200 && responseJson["response"]["numFound"] != 0)
@@ -134,6 +136,7 @@ int CommunicationManager::receiveCommunicationData(char* data)
                 }
             }
         }
+#endif
     }
     return 0;
 }
