@@ -17,6 +17,7 @@ typedef SSIZE_T ssize_t;
 #define  BAD_SOCKET_FD INVALID_SOCKET
 
 #define AES_ENCRYPTION  (TRUE)     // decision for applying AES256 encryption
+#define TCP_KEEPALIVE   (TRUE)     // decision for using TCP KEEPALIVE
 
 //------------------------------------------------------------------------------------------------
 // Types
