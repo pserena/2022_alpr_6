@@ -69,7 +69,7 @@ int CommunicationManager::sendCommunicationData(unsigned char* data) {
     SendPlateStringLength = (unsigned short)strlen((char*)data) + 1;
     SendMsgHdr = htons(SendPlateStringLength);
     if (TcpConnectedPort == NULL || saveRetry) {
-        printf("skip sendCommunicationData :: %d\n", saveRetry);
+        //printf("skip sendCommunicationData :: %d\n", saveRetry);
         retryNetworkConnectSave(true);
         return -1;
     }
@@ -146,7 +146,7 @@ static int GetResponses(char* data)
     unsigned short DataStringLength;
     //cout << "Get Response" << endl;
     if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&DataStringLength, sizeof(DataStringLength)) != sizeof(DataStringLength)) {
-        cout << "Read Response Error - Closing Socket" << endl;
+        //cout << "Read Response Error - Closing Socket" << endl;
         return -1;
     }
     unsigned short data_length = ntohs(DataStringLength);
@@ -238,7 +238,7 @@ int CommunicationManager::sendRecognizedInfo(string rs, int puid) {
     jsonMessage["plate_number"] = rs.c_str();
     jsonMessage["plate_uid"] = to_string(puid);
     string messageRecognized = jsonMessage.dump();
-    printf("sendRecognizedInfo %s\n", messageRecognized.c_str());
+    //printf("sendRecognizedInfo %s\n", messageRecognized.c_str());
     int result = sendCommunicationData((unsigned char*)messageRecognized.c_str());
     if (result >= 0) {
         clock_t recTime = time(NULL);

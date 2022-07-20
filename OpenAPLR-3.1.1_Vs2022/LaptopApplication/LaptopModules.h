@@ -63,7 +63,7 @@ namespace client
 		bool GetFileName(Mode mode, char filename[MAX_PATH]);
 		VideoSaveMode GetVideoSaveMode(void);
 		void PrintErrMsg(std::string msg);
-		void UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo);
+		void UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo, int nError);
 		void UpdateVideo(void);
 
 		void destroyAll(void) {
