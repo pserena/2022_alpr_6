@@ -12,6 +12,9 @@
 #include "NetworkTCP.h"
 
 #include "../aes256/include/aes256.hpp"
+#include <mstcpip.h>
+
+using namespace std;
 
 #pragma comment (lib, "../x64/Release/aes256.lib")
 
@@ -168,6 +171,22 @@ TTcpConnectedPort *AcceptTcpConnection(TTcpListenPort *TcpListenPort,
 #endif
  else
      printf("ioctlsocket(FIONBIO) is OK!\n");
+
+#if (defined(TCP_KEEPALIVE) && (TCP_KEEPALIVE == TRUE))
+  DWORD dwError = 0L;
+  tcp_keepalive sKA_Settings = { 0 }, sReturned = { 0 };
+  sKA_Settings.onoff = 1;
+  sKA_Settings.keepalivetime = 50;
+  sKA_Settings.keepaliveinterval = 50;
+  DWORD dwBytes;
+
+  if (WSAIoctl(TcpConnectedPort->ConnectedFd, SIO_KEEPALIVE_VALS, &sKA_Settings, sizeof(sKA_Settings),
+      &sReturned, sizeof(sReturned), &dwBytes, NULL, NULL) != 0)
+  {
+      dwError = WSAGetLastError();
+      printf("SIO_KEEPALIVE_VALS result : %dn", dwError);
+  }
+#endif
  return TcpConnectedPort;
 }
 //-----------------------------------------------------------------
@@ -255,6 +274,22 @@ TTcpConnectedPort *OpenTcpConnection(const char *remotehostname, const char * re
             return(NULL);
 	  }
   freeaddrinfo(result);	 
+
+#if (defined(TCP_KEEPALIVE) && (TCP_KEEPALIVE == TRUE))
+  DWORD dwError = 0L;
+  tcp_keepalive sKA_Settings = { 0 }, sReturned = { 0 };
+  sKA_Settings.onoff = 1;
+  sKA_Settings.keepalivetime = 50;
+  sKA_Settings.keepaliveinterval = 50;
+  DWORD dwBytes;
+
+  if (WSAIoctl(TcpConnectedPort->ConnectedFd, SIO_KEEPALIVE_VALS, &sKA_Settings, sizeof(sKA_Settings),
+      &sReturned, sizeof(sReturned), &dwBytes, NULL, NULL) != 0)
+  {
+      dwError = WSAGetLastError();
+      printf("SIO_KEEPALIVE_VALS result : %dn", dwError);
+  }
+#endif
   return(TcpConnectedPort);
 }
 //-----------------------------------------------------------------
