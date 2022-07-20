@@ -102,7 +102,7 @@ namespace client
 
 	class CommunicationManager {
 	public:
-		CommunicationManager();
+		CommunicationManager(const string& ipaddr);
 		virtual ~CommunicationManager();
 
 		int networkConnect(void);
@@ -119,6 +119,7 @@ namespace client
 	private:
 		void reconnectThreadStart(void);
 		void timer_start(std::function<void(CommunicationManager*)> func, unsigned int interval);
+		string ipaddr_;
 	};
 
 	class VehicleInfoManager {
