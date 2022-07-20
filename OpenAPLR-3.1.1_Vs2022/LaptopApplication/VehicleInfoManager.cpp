@@ -88,10 +88,6 @@ int VehicleInfoManager::receiveCommunicationData(void)
 					//}
 				}
 
-				Mat pimag = mapVehicleImg.find(puid)->second;
-				json jsonRetPlateInfo = responseJson["response"];
-				ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo);
-
 				vector<string> vecPlateNum;
 				auto request_time = mapVehicleNum.find(plate_number)->second.second;
 				int num = responseJson["response"]["docs"].size();
