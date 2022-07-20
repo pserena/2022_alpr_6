@@ -9,6 +9,7 @@ using json = nlohmann::json;
 
 map<string, int> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
+vector<int> matchVehicleNum;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
 
@@ -63,12 +64,27 @@ int VehicleInfoManager::receiveCommunicationData(void)
 		try {
 			json responseJson = json::parse(ResponseBuffer);
 			if (responseJson["request_type"] == "query") {
-				string plate_number = responseJson["plate_number"];
-				int puid = mapVehicleNum.find(plate_number)->second;
-				Mat pimag = mapVehicleImg.find(puid)->second;
-				json jsonRetPlateInfo = responseJson["response"];
+				if (responseJson["response_code"] == 200 && responseJson["response"]["numFound"] != 0) {
+					string strPlateUID = responseJson["plate_uid"];
+					int nPlateUID = stoi(strPlateUID);
+					auto it = find(matchVehicleNum.begin(), matchVehicleNum.end(), nPlateUID);
+					if (it == matchVehicleNum.end()) {
+						const string& query = responseJson["responseHeader"]["params"]["q"];
+						if (query.find("~") == string::npos) {
+							matchVehicleNum.push_back(nPlateUID);
+						}
+						matchVehicleNum.push_back(nPlateUID);
+						string plate_number = responseJson["plate_number"];
+						int puid = mapVehicleNum.find(plate_number)->second;
+						Mat pimag = mapVehicleImg.find(puid)->second;
+						json jsonRetPlateInfo = responseJson["response"];
 
-				ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo);
+						ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo);
+					}
+					//else {
+					//	printf("\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %d\n\n\n", nPlateUID);
+					//}
+				}
 			}
 		}
 		catch (json::parse_error& ex)

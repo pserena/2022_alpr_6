@@ -119,7 +119,7 @@ int CommunicationManager::receiveCommunicationData(char* data)
         else {
             json responseJson = json::parse(data);
             if (responseJson["request_type"] == "query") {
-                if (responseJson["response_code"] == 200 && responseJson["numFound"] != 0)
+                if (responseJson["response_code"] == 200 && responseJson["response"]["numFound"] != 0)
                 {
                     clock_t recTime = time(NULL);
                     vector<string> vecPlateNum;
