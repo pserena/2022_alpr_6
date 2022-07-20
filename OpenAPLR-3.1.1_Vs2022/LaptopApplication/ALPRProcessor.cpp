@@ -8,6 +8,8 @@ using namespace client;
 char LastPlates[NUMBEROFPREVIOUSPLATES][64] = { "","","","","" };
 unsigned int CurrentPlate = 0;
 Point2i last_point(0, 0);
+int max_point_num = 0;
+float max_confidence = 0.0f;
 int process_count = 0;
 
 int counter = 0;
@@ -50,6 +52,11 @@ void ALPRProcessor::process(Mat frame)
 		{
 			if (strcmp(results.plates[i].bestPlate.characters.c_str(), LastPlates[x]) == 0)
 			{
+				if (max_confidence < results.plates[i].bestPlate.overall_confidence)
+				{
+					max_confidence = results.plates[i].bestPlate.overall_confidence;
+					max_point_num = x;
+				}
 				found = true;
 				break;
 			}
@@ -60,7 +67,7 @@ void ALPRProcessor::process(Mat frame)
 			Mat plate_cropped;
 			string rs = results.plates[i].bestPlate.characters.c_str();
 
-			if (process_count == 0 || abs(last_point.x - psi[0].x) > 80)
+			if (process_count == 0 || abs(last_point.x - psi[max_point_num].x) > 80)
 			{
 				plate_uid++;
 				plate_cropped = frame(rect & totalrect);
@@ -71,7 +78,7 @@ void ALPRProcessor::process(Mat frame)
 
 		strcpy_s(LastPlates[CurrentPlate], results.plates[i].bestPlate.characters.c_str());
 		CurrentPlate = (CurrentPlate + 1) % NUMBEROFPREVIOUSPLATES;
-		last_point = psi[0];
+		last_point = psi[max_point_num];
 		process_count++;
 	}
 }
