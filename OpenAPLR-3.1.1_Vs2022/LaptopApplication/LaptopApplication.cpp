@@ -2,11 +2,40 @@
 //
 
 #include <thread>
-
+#include <iostream>
+#include <fstream>
 #include "LaptopModules.h"
 //#include "NetworkTCP.h"
+#include "json.hpp"
 
+using json = nlohmann::json;
 using namespace client;
+
+
+
+struct LaptopConfig {
+	string ipaddr;
+};
+
+LaptopConfig loadConfig() {
+	char buf[4096] = { 0 };
+	LaptopConfig lc;
+	ifstream is("laptop_config.json");
+	if (is.is_open()) {
+		is.read(buf, sizeof(buf));
+		is.close();
+		//cout << buf << endl;
+		try {
+			json s = json::parse(buf);
+			lc.ipaddr = s["server_ip"];
+		}
+		catch (json::parse_error& ex) {
+			cout << "Failed to parsig laptop_config.json" << endl;
+			return lc;
+		}
+	}
+	return lc;
+}
 
 int main()
 {
@@ -17,11 +46,14 @@ int main()
     client::IOSourceManager io(&ui);
 	client::VehicleInfoManager vehicleInfoMng(&ui);
 	client::ALPRProcessor alpr(county, "", &vehicleInfoMng);
-    client::CommunicationManager commMan;
     client::LoginManager loginMng;
+
+	auto laptopConfig = loadConfig();
+	client::CommunicationManager commMan(laptopConfig.ipaddr);
 
     loginMng.linkCommMag(&commMan);
     vehicleInfoMng.linkCommMag(&commMan);
+
     commMan.networkConnect();
 
 	if (loginMng.login())

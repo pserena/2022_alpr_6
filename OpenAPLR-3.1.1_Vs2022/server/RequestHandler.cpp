@@ -25,7 +25,12 @@ RequestHandler::~RequestHandler() {
 void RequestHandler::plateQueryHandler(UINT_PTR id, nlohmann::json requestJson, function<void(string)> callback) {
 	//cout << "Num of thread : " << thread_num_ << endl;
 	nlohmann::json responseJson;
-	vif_->getVehicleInformation(requestJson, responseJson);
+	int result = vif_->getVehicleInformation(requestJson, responseJson);
+	if (result < 0)
+	{
+		return;
+	}
+
 	//cout << " Respnose : " << responseJson << endl;
 	if (responseJson["response"]["numFound"] == 0) {
 		++statistics_[SessionLoginAccounts[id]].no_match;
@@ -113,7 +118,7 @@ void RequestHandler::handle(UINT_PTR id, string requestString, function<void(str
 void RequestHandler::printInformation() {
 	Statistics prev_s;
 	map<string, uint32_t> query_per_sec;
-	return; // To see the other log, need to uncomment this line
+	//return; // To see the other log, need to uncomment this line
 	while (!quit_) {
 		system("cls");
 		Statistics s;

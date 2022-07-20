@@ -23,22 +23,23 @@ bool equals_ignorecase(const string& a, const string& b)
         });
 }
 
-string readFileIntoString(const string& path) {
+int readFileIntoString(const string& path, string& result) {
     struct stat sb {};
-    string res;
 
     FILE* input_file = fopen(path.c_str(), "r");
-    if (input_file == nullptr) {
-        perror("fopen");
+    if (input_file == nullptr)
+    {
+        cerr << "failed to open the file. (\"" << path << "\")" << endl;
+        return -1;
     }
 
     stat(path.c_str(), &sb);
-    res.resize(sb.st_size);
+    result.resize(sb.st_size);
 
-    fread(const_cast<char*>(res.data()), sb.st_size, 1, input_file);
+    fread(const_cast<char*>(result.data()), sb.st_size, 1, input_file);
     fclose(input_file);
 
-    return res;
+    return 1;
 }
 
 vector<string> split(string str, char Delimiter) {
@@ -54,16 +55,24 @@ vector<string> split(string str, char Delimiter) {
     return result;
 }
 
-int UserAuthotication(string &userId, string &userPassword)
+int UserAuthotication(string& userId, string& userPassword)
 {
-    string accountInfo = readFileIntoString("user_accounts.txt");
+    string fileName = "user_accounts.txt";
+    string accountInfo;
+    int fileStatus = readFileIntoString(fileName, accountInfo);
+    if (fileStatus < 0)
+    {
+        cerr << "failed to get the account info." << endl;
+        cerr << "the file(\"" << fileName << "\") " << "must exist in the server run location." << endl;
+        return 0;
+    }
     cout << "accountInfo: " << accountInfo << endl;
 
     unsigned char decryptionData[512];
     memset(decryptionData, 0, 512);
     int decryptionDataLength = -1;
     aesDecryption((unsigned char*)accountInfo.c_str(), accountInfo.length(), decryptionData, decryptionDataLength);
-    cout << "accountInfo(decrypted) : " << decryptionData << endl;
+    //cout << "accountInfo(decrypted) : " << decryptionData << endl;
 
     string decryptedAccountInfo = static_cast<std::string>(reinterpret_cast<const char*>(decryptionData));
     vector<string> result = split(decryptedAccountInfo, '\n');
@@ -76,7 +85,7 @@ int UserAuthotication(string &userId, string &userPassword)
             && equals_ignorecase(userPassword, curPassword))
         {
             return 1;
-        }            
+        }
     }
     return 0;
 }
@@ -86,9 +95,9 @@ int LoginRequestHandler::login(const nlohmann::json& requestJson, nlohmann::json
     auto start_time = std::chrono::milliseconds(GetTickCount64());
 
     string userId = requestJson["user_id"].get<std::string>();
-    cout << "userId: " << userId << endl;
+    //cout << "userId: " << userId << endl;
     string userPassword = requestJson["user_password"].get<std::string>();
-    cout << "userPassword: " << userPassword << endl;
+    //cout << "userPassword: " << userPassword << endl;
 
     responseJson["request_type"] = requestJson["request_type"];
     responseJson["user_id"] = requestJson["user_id"];
@@ -100,7 +109,7 @@ int LoginRequestHandler::login(const nlohmann::json& requestJson, nlohmann::json
         responseJson["response_code"] = 200;
         responseJson["response_message"] = "login succeed.";
 
-        cout << "responseJson(changed): " << responseJson << endl;
+        //cout << "responseJson(changed): " << responseJson << endl;
     }
 
     auto process_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();

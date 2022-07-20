@@ -18,23 +18,24 @@ static string userID = "";
 static string userPass = "";
 static int reconnectThread(CommunicationManager* commMan);
 
-CommunicationManager::CommunicationManager(void)
-{
-    //networkConnect();
-}
+CommunicationManager::CommunicationManager(const string& ipaddr) : ipaddr_(ipaddr)
+{}
+
 CommunicationManager::~CommunicationManager(void)
 {
 }
 
 int CommunicationManager::networkConnect(void) {
-    if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL) {
-    //if ((TcpConnectedPort = OpenTcpConnection("192.168.0.101", "2222")) == NULL) {
-    //if ((TcpConnectedPort = OpenTcpConnection("192.168.0.105", "2222")) == NULL) {
-    //if ((TcpConnectedPort = OpenTcpConnection("10.58.58.47", "2222")) == NULL) {
-        std::cout << "Connection Failed" << std::endl;
+    const string& ipaddr = ipaddr_.empty() ? "127.0.0.1" : ipaddr_;
+    if ((TcpConnectedPort = OpenTcpConnection(ipaddr.c_str(), "2222")) == NULL) { 
+        std::cout << "Connection Failed to " << ipaddr << std::endl;
+        retryNetworkConnectSave(true);
         return (-1);
-    } else
-        std::cout << "Connected" << std::endl;
+    }
+    else {
+        retryNetworkConnectSave(false);
+        std::cout << "Connected to " << ipaddr << std::endl;
+    }
     return 0;
 }
 
@@ -55,7 +56,6 @@ int CommunicationManager::retryNetworkConnect(void) {
     printf("retryNetworkConnect start \n");
     networkConnectClose();
     if (networkConnect() >=0) {
-        saveRetry = false;
         if (!userID.empty()) {
             authenticate(userID, userPass);
         }
@@ -71,11 +71,13 @@ int CommunicationManager::sendCommunicationData(unsigned char* data) {
     if (TcpConnectedPort == NULL || saveRetry) {
         printf("skip sendCommunicationData :: %d\n", saveRetry);
         retryNetworkConnectSave(true);
+        return -1;
     }
     else if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) == sizeof(SendPlateStringLength)) {
         if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)data, SendPlateStringLength)) != SendPlateStringLength) {
             printf("WriteDataTcp 11 :: %d\n", result);
             retryNetworkConnectSave(true);
+            return -1;
         }
         else {
             printf("sent ->%s\n", data);
@@ -83,6 +85,7 @@ int CommunicationManager::sendCommunicationData(unsigned char* data) {
     } else {
         printf("WriteDataTcp 22 :: %d\n", result);
         retryNetworkConnectSave(true);
+        return -1;
     }
     return 0;
 }
@@ -113,6 +116,27 @@ int CommunicationManager::receiveCommunicationData(char* data)
             retryNetworkConnectSave(true);
             return -1;
         }
+#if 0
+        else {
+            //cout << data << end;
+            json responseJson = json::parse(data);
+            if (responseJson["request_type"] == "query") {
+                if (responseJson["response_code"] == 200 && responseJson["response"]["numFound"] != 0)
+                {
+                    clock_t recTime = time(NULL);
+                    vector<string> vecPlateNum;
+                    int num = responseJson["response"]["docs"].size();
+                    for (int i = 0; i < num; i++) {
+                        string plate_number = responseJson["response"]["docs"].at(i)["plate_number"].at(0).get<string>();
+                        printf("################## %s\n", plate_number);
+                        vecPlateNum.push_back(plate_number);
+                    }
+                    ///////////////////////////////////////
+                    // 큐에 "RESPONSE recTime vecPlateNum" 형식으로 넣으면 됩니다.
+                }
+            }
+        }
+#endif
     }
     return 0;
 }
@@ -215,8 +239,14 @@ int CommunicationManager::sendRecognizedInfo(string rs, int puid) {
     jsonMessage["plate_uid"] = to_string(puid);
     string messageRecognized = jsonMessage.dump();
     printf("sendRecognizedInfo %s\n", messageRecognized.c_str());
-    sendCommunicationData((unsigned char*)messageRecognized.c_str());
-
+    int result = sendCommunicationData((unsigned char*)messageRecognized.c_str());
+    if (result >= 0) {
+        clock_t recTime = time(NULL);
+        vector<string> vecPlateNum;
+        vecPlateNum.push_back(rs);
+        ///////////////////////////////////////
+        // 큐에 "REQUEST recTime vecPlateNum" 형식으로 넣으면 됩니다.
+    }
     return 0;
 }
 

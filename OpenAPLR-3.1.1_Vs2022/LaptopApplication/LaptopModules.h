@@ -6,6 +6,8 @@
 #include <opencv2/highgui.hpp>
 #include <functional>
 #include <map>
+#include <fstream>
+
 
 #include "alpr.h"
 #include "json.hpp"
@@ -108,7 +110,7 @@ namespace client
 
 	class CommunicationManager {
 	public:
-		CommunicationManager();
+		CommunicationManager(const string& ipaddr);
 		virtual ~CommunicationManager();
 
 		int networkConnect(void);
@@ -125,6 +127,7 @@ namespace client
 	private:
 		void reconnectThreadStart(void);
 		void timer_start(std::function<void(CommunicationManager*)> func, unsigned int interval);
+		string ipaddr_;
 	};
 
 	class VehicleInfoManager {
@@ -142,6 +145,7 @@ namespace client
 		UIManager* ui;
 		void recevieThreadStart(void);
 		void timer_start(std::function<void(VehicleInfoManager*)> func, unsigned int interval);
+		ofstream log_output_;
 	};
 
 	class ALPRProcessor : public Alpr {
