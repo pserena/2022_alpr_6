@@ -56,9 +56,13 @@ int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 
 int VehicleInfoManager::receiveCommunicationData(void)
 {
+	static time_t errorStartTime = time(NULL);
+	static bool receiveError = false;
 	char ResponseBuffer[8192] = {0, };
 	int result = commMan->receiveCommunicationData(ResponseBuffer);
 	if (ResponseBuffer[0] != 0) {
+		errorStartTime = time(NULL);
+		receiveError = false; 
 		//printf("receiveCommunicationData JSON %s\n", ResponseBuffer);
 		//string id;
 		//cin >> id;
@@ -81,7 +85,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 						Mat pimag = mapVehicleImg.find(puid)->second;
 						json jsonRetPlateInfo = responseJson["response"];
 
-						ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo);
+						ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo, (int)receiveError);
 					}
 					//else {
 					//	printf("\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %d\n\n\n", nPlateUID);
@@ -109,6 +113,23 @@ int VehicleInfoManager::receiveCommunicationData(void)
 			//exit(1);
 		}
 	}
+	else {
+		if (!receiveError) {
+			receiveError = true;
+			errorStartTime = time(NULL);
+			printf("receive error start = %d\n", errorStartTime);
+		}
+		else {
+			static time_t curTime = time(NULL);
+			if (abs(errorStartTime - time(NULL)) > 5) {
+				printf("network disconnect error \n");
+				errorStartTime = time(NULL);
+				Mat pimag;
+				json jsonRetPlateInfo;
+				ui->UpdateVinfo("", 0, pimag, jsonRetPlateInfo, (int)receiveError);
+			}
+		}
+	}
 	return 0;
 }
 
@@ -126,7 +147,7 @@ void VehicleInfoManager::timer_start(std::function<void(VehicleInfoManager*)> fu
 		while (true)
 		{
 			func(this);
-			std::this_thread::sleep_for(std::chrono::milliseconds(interval));
+			//std::this_thread::sleep_for(std::chrono::milliseconds(interval));
 		}
 		}).detach();
 }

@@ -18,7 +18,7 @@ struct LaptopConfig {
 };
 
 LaptopConfig loadConfig() {
-	char buf[4096];
+	char buf[4096] = {};
 	LaptopConfig lc;
 	ifstream is("laptop_config.json");
 	if (is.is_open()) {

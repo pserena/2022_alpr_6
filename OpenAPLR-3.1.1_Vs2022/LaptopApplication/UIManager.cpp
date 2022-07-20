@@ -233,9 +233,15 @@ static void puttext_info(Mat plate, const char* d1, const char* d2, const char* 
     );
 }
 
-void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo)
+void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo, int nError)
 {
     json docs = jsonRetPlateInfo["docs"];
+
+    if (nError == 1) {
+        // network disconnect
+        printf("network disconnect error UpdateVinfo \n");
+        return;
+    }
 
     if (docs.size() == 0)
         return;
