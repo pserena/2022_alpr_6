@@ -18,23 +18,20 @@ static string userID = "";
 static string userPass = "";
 static int reconnectThread(CommunicationManager* commMan);
 
-CommunicationManager::CommunicationManager(void)
-{
-    //networkConnect();
-}
+CommunicationManager::CommunicationManager(const string& ipaddr) : ipaddr_(ipaddr)
+{}
+
 CommunicationManager::~CommunicationManager(void)
 {
 }
 
 int CommunicationManager::networkConnect(void) {
-    if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL) {
-    //if ((TcpConnectedPort = OpenTcpConnection("192.168.0.100", "2222")) == NULL) {
-    //if ((TcpConnectedPort = OpenTcpConnection("192.168.0.105", "2222")) == NULL) {
-    //if ((TcpConnectedPort = OpenTcpConnection("10.58.58.47", "2222")) == NULL) {
-        std::cout << "Connection Failed" << std::endl;
+    const string& ipaddr = ipaddr_.empty() ? "127.0.0.1" : ipaddr_;
+    if ((TcpConnectedPort = OpenTcpConnection(ipaddr.c_str(), "2222")) == NULL) { 
+        std::cout << "Connection Failed to " << ipaddr << std::endl;
         return (-1);
     } else
-        std::cout << "Connected" << std::endl;
+        std::cout << "Connected to " << ipaddr << std::endl;
     return 0;
 }
 
