@@ -13,7 +13,7 @@ int process_count = 0;
 
 int counter = 0;
 
-int image_save_count = 0;
+int save_count = 0;
 
 void ALPRProcessor::process(Mat frame)
 {
@@ -64,22 +64,33 @@ void ALPRProcessor::process(Mat frame)
 			Mat plate_cropped;
 			string rs = results.plates[i].bestPlate.characters.c_str();
 
-			if (process_count == 0 || abs(last_point.x - psi[0].x) > 80)
+			printf("last:%d cur:%d\n", last_point.x, psi[0].x);
+
+			if (process_count == 0 || abs(last_point.x - psi[0].x) > 90)
 			{
 				plate_uid++;
 				max_confidence = results.plates[i].bestPlate.overall_confidence;
 				plate_cropped = frame(rect & totalrect);
 
-				image_save_count = 0;
+				save_count = 0;
 			}
 
+			// one time change allowed
 			if (max_confidence < results.plates[i].bestPlate.overall_confidence) {
 				plate_cropped = frame(rect & totalrect);
-				max_confidence = results.plates[i].bestPlate.overall_confidence;
+				max_confidence = INT_MAX;
 
-				image_save_count++;
+				save_count++;
 			}
 
+			if (!plate_cropped.empty())
+			{
+				char fn[128];
+				sprintf_s(fn, "cropped_%d_%d.jpg", plate_uid, save_count);
+				imwrite(fn, plate_cropped);
+				printf("crop %d %d\n", plate_uid, save_count);
+			}
+			
 			viManager->setRecognizedInfo(rs, plate_uid, plate_cropped);
 		}
 

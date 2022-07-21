@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <thread>
+#include <fstream>
 
 #include "RequestHandler.h"
 #include "AesManager.h"
@@ -85,6 +86,7 @@ int main()
     bool NeedStringLength = true;
     unsigned short DataStringLength;
     char DataString[4096];
+    ofstream log_output_;
 #ifndef SOLRDB
     char DBRecord[2048];
     DB* dbp; /* DB structure handle */
@@ -121,11 +123,13 @@ int main()
         return -1;
     }
 #endif
-
+    log_output_.open("6team.server.log", std::ofstream::out);
     std::cout << "Start Server" << endl;
+    log_output_ << GetTickCount64() << ": " << "Start Server" << endl;
     if ((TcpListenPort = OpenTcpListenPort(2222)) == NULL)  // Open UDP Network port
     {
         std::cout << "OpenTcpListenPortFailed\n";
+        log_output_ << GetTickCount64() << ": " << "TCP Listen Port Failed " << endl;
         return(-1);
     }
     clilen = sizeof(cli_addr);
@@ -175,6 +179,9 @@ int main()
             strcpy(ipbuf, inet_ntoa(cli_addr.sin_addr));
             printf("IP address : %s\n", ipbuf);
             printf("Port : %d\n", ntohs(cli_addr.sin_port));
+            
+            log_output_ << GetTickCount64() << ": " << "connected. " << ipbuf << "( PORT:" << cli_addr.sin_port << ")"  <<  endl;
+            
             connected_ports.insert(shared_ptr<TTcpConnectedPort>(TcpConnectedPort));
             rh.connect(TcpConnectedPort->ConnectedFd);
         }
@@ -184,6 +191,7 @@ int main()
 				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&DataStringLength, sizeof(DataStringLength)) != sizeof(DataStringLength))
 				{
 					printf("ReadDataTcp 1 error - close socket\n");
+                    log_output_ << GetTickCount64() << ": " << inet_ntoa(cli_addr.sin_addr) << "- ReadDataTcp 1 error - close socket" << endl;
 					closesocket(connected_fd->ConnectedFd);
                     rh.disconnect(connected_fd->ConnectedFd);
 					connected_ports.erase(connected_fd);
@@ -196,6 +204,7 @@ int main()
 				if (data_length > sizeof(DataString))
 				{
 					printf("Data string length error : %d (%x)\n", data_length, data_length);
+                    log_output_ << GetTickCount64() << ": " << inet_ntoa(cli_addr.sin_addr) << "Data string length error :" << data_length << endl;
                     return 0;
 					continue;
 				}
@@ -204,6 +213,7 @@ int main()
 				if (read_size != data_length)
 				{
 					printf("ReadDataTcp 2 error %lld vs %d\n", read_size, data_length);
+                    log_output_ << GetTickCount64() << ": " << inet_ntoa(cli_addr.sin_addr) << "ReadDataTcp 2 error  :" << data_length << endl;
 					continue;
 				}
 				//printf("Data is : %s\n", DataString);

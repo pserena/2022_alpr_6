@@ -123,6 +123,11 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 			output_saver.detach();
 		}
 
+		Point pt1(250, 50);
+		Rect rect(pt1, Size(100, 50));
+
+		rectangle(*frame, rect, Scalar(0, 0, 0), 2);
+
 		// TODO: push to queue and 25 fps handling
 		// Display the resulting frame
 		//imshow("Frame", frame);

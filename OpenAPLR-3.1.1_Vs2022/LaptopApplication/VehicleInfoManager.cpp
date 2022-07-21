@@ -10,7 +10,7 @@ using json = nlohmann::json;
 
 map<string, pair<int, ULONGLONG>> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
-vector<int> matchVehicleNum;
+map<int, json> mapVehicleJson;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
 
@@ -49,21 +49,21 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
 	if (mapVehicleNum.find(rs) == mapVehicleNum.end()) {
+		printf("\n************************************* %s\n", rs);
 		//mapVehicleNum.insert(make_pair(rs, make_pair(puid, time(NULL)));
 		mapVehicleNum[rs] = make_pair(puid, GetTickCount64());
 		if (!pimag.empty()) {
 			Mat copy;
 			pimag.copyTo(copy);
 			mapVehicleImg.insert(make_pair(puid, copy));
+			if (mapVehicleJson.find(puid) != mapVehicleJson.end()) {
+				json jsonRetPlateInfo = mapVehicleJson.find(puid)->second;
+				ui->UpdateVinfo(rs, puid, copy, jsonRetPlateInfo, 0);
+				printf("\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s\n", rs);
+			}
 		}
+		printf("\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %s\n", rs);
 		commMan->sendRecognizedInfo(rs, puid);
-	}
-	else {
-		if (!pimag.empty()) {
-			Mat copy;
-			pimag.copyTo(copy);
-			mapVehicleImg[puid] = copy;
-		}
 	}
 
 	return 0;
@@ -90,15 +90,13 @@ int VehicleInfoManager::receiveCommunicationData(void)
 				if (responseJson["response_code"] == 200 && responseJson["response"]["numFound"] != 0) {
 					string strPlateUID = responseJson["plate_uid"];
 					int nPlateUID = stoi(strPlateUID);
-					auto it = find(matchVehicleNum.begin(), matchVehicleNum.end(), nPlateUID);
-					if (it == matchVehicleNum.end()) {
+					if (mapVehicleJson.find(nPlateUID) == mapVehicleJson.end()) {
 						const string& query = responseJson["responseHeader"]["params"]["q"];
-						if (query.find("~") == string::npos) {
-							matchVehicleNum.push_back(nPlateUID);
-						}
-						
 						Mat pimag = mapVehicleImg.find(puid)->second;
 						json jsonRetPlateInfo = responseJson["response"];
+						if (query.find("~") == string::npos) {
+							mapVehicleJson.insert(make_pair(nPlateUID, jsonRetPlateInfo));
+						}
 
 						ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo, (int)receiveError);
 					}
