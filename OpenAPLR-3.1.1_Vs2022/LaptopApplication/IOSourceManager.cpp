@@ -123,16 +123,13 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 			output_saver.detach();
 		}
 
-		Point pt1(200, 10);
-		Rect rect(pt1, Size(200, 20));
-
-		rectangle(*frame, rect, Scalar(0, 0, 255), 2);
-
-		cv::putText(*frame, "Connectivity Loss",
-			cv::Point(200, frame->rows - 460), //top-left position
-			FONT_HERSHEY_COMPLEX_SMALL, 1,
-			Scalar(0, 0, 255), 0, LINE_AA, false);
-
+		if (ui->connection_lost) {
+			cv::putText(*frame, "Connection Lost",
+				cv::Point(200, 20), //top-left position
+				FONT_HERSHEY_COMPLEX_SMALL, 1,
+				Scalar(0, 0, 255), 0, LINE_AA, false);
+		}
+		
 		// TODO: push to queue and 25 fps handling
 		// Display the resulting frame
 		//imshow("Frame", frame);
