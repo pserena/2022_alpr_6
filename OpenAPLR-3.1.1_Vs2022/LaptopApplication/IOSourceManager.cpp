@@ -126,7 +126,12 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 		Point pt1(250, 50);
 		Rect rect(pt1, Size(100, 50));
 
-		rectangle(*frame, rect, Scalar(0, 0, 0), 2);
+		rectangle(*frame, rect, Scalar(0, 0, 255), 2);
+
+		cv::putText(*frame, "Connectivity Loss",
+			cv::Point(200, frame->rows - 460), //top-left position
+			FONT_HERSHEY_COMPLEX_SMALL, 1,
+			Scalar(0, 0, 255), 0, LINE_AA, false);
 
 		// TODO: push to queue and 25 fps handling
 		// Display the resulting frame
