@@ -333,7 +333,6 @@ void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonR
         printf("plate image empty \n");
     else {
         cv::resize(pimag, pimag, Size(VI_WIDTH, 100));
-
         if (vehicle_count) {
             info.copyTo(vtext);
             pimag.copyTo(vimg);
@@ -341,6 +340,12 @@ void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonR
         if (alert_count) {
             ainfo.copyTo(atext);
             pimag.copyTo(aimg);
+
+            cv::putText(aimg, "A L E R T",
+                cv::Point(200, 20),
+                FONT_HERSHEY_DUPLEX, 0.7,
+                Scalar(0, 0, 255), 1, LINE_AA, false
+            );
         }
     }
 }
@@ -358,21 +363,6 @@ void UIManager::RefreshUI(void)
     aimage.copyTo(aimg);
 
     UpdateVideo();
-}
-    if (vehicle_count) {
-        info.copyTo(vtext);
-        pimag.copyTo(vimg);
-    }
-    if (alert_count) {
-        ainfo.copyTo(atext);
-        pimag.copyTo(aimg);
-
-        cv::putText(aimg, "A L E R T",
-            cv::Point(200, 20),
-            FONT_HERSHEY_DUPLEX, 0.7,
-            Scalar(0, 0, 255), 1, LINE_AA, false
-        );
-    }
 }
 
 void UIManager::UpdateVideo(void)
