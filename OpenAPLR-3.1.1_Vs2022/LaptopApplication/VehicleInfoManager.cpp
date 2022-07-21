@@ -10,6 +10,7 @@ using json = nlohmann::json;
 
 map<string, pair<int, ULONGLONG>> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
+map<string, json> mapVehicleJson;
 vector<int> matchVehicleNum;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
@@ -63,6 +64,10 @@ int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 			Mat copy;
 			pimag.copyTo(copy);
 			mapVehicleImg[puid] = copy;
+			if (mapVehicleJson.find(rs) != mapVehicleJson.end()) {
+				json jsonRetPlateInfo = mapVehicleJson.find(rs)->second;
+				ui->UpdateVinfo(rs, puid, copy, jsonRetPlateInfo, 0);
+			}
 		}
 	}
 
@@ -101,6 +106,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 						json jsonRetPlateInfo = responseJson["response"];
 
 						ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo, (int)receiveError);
+						mapVehicleJson.insert(make_pair(plate_number, jsonRetPlateInfo));
 					}
 					//else {
 					//	printf("\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %d\n\n\n", nPlateUID);
