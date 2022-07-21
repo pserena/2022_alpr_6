@@ -23,6 +23,7 @@ UIManager::UIManager()
     aimg = Mat(100, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
     atext = Mat(140, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
     vinfo = Mat(VI_HEIGHT, VI_WIDTH, CV_8UC3, Scalar(255, 255, 255));
+    connection_lost = false;
 }
 
 static bool getconchar(KEY_EVENT_RECORD& krec)
@@ -243,13 +244,15 @@ static void puttext_info(Mat plate, const char* d1, const char* d2, const char* 
 
 void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo, int nError)
 {
-    json docs = jsonRetPlateInfo["docs"];
+    connection_lost = nError;
 
     if (nError == 1) {
         // network disconnect
         printf("network disconnect error UpdateVinfo \n");
         return;
     }
+
+    json docs = jsonRetPlateInfo["docs"];
 
     if (docs.size() == 0)
         return;

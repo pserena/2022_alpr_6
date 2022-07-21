@@ -54,6 +54,8 @@ namespace client
 		Mat atext;
 		Mat aimg;
 
+		bool connection_lost;
+
 		UIManager(void);
 		virtual ~UIManager(void) {
 		}
