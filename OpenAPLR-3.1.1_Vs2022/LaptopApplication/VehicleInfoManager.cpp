@@ -53,7 +53,7 @@ int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 	if (!pimag.empty()) {
 		Mat copy;
 		pimag.copyTo(copy);
-		mapVehicleImg.insert(make_pair(puid, copy));
+		mapVehicleImg[puid] = copy;
 	}
 	commMan->sendRecognizedInfo(rs, puid);
 
