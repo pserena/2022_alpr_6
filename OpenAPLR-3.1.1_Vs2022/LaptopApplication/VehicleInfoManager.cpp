@@ -50,6 +50,7 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
 	if (mapVehicleNum.find(rs) == mapVehicleNum.end()) {
+		printf("\n************************************* %s\n", rs);
 		//mapVehicleNum.insert(make_pair(rs, make_pair(puid, time(NULL)));
 		mapVehicleNum[rs] = make_pair(puid, GetTickCount64());
 		if (!pimag.empty()) {
@@ -57,16 +58,20 @@ int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 			pimag.copyTo(copy);
 			mapVehicleImg.insert(make_pair(puid, copy));
 		}
+		printf("\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %s\n", rs);
 		commMan->sendRecognizedInfo(rs, puid);
 	}
 	else {
+		printf("\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ %s\n", rs);
 		if (!pimag.empty()) {
 			Mat copy;
 			pimag.copyTo(copy);
 			mapVehicleImg[puid] = copy;
+			printf("\n################################### %s\n", rs);
 			if (mapVehicleJson.find(rs) != mapVehicleJson.end()) {
 				json jsonRetPlateInfo = mapVehicleJson.find(rs)->second;
 				ui->UpdateVinfo(rs, puid, copy, jsonRetPlateInfo, 0);
+				printf("\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s\n", rs);
 			}
 		}
 	}
