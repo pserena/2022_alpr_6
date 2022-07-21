@@ -123,8 +123,8 @@ void IOSourceManager::process(Mode mode, function<void(Mat)> alpr_process)
 			output_saver.detach();
 		}
 
-		Point pt1(250, 50);
-		Rect rect(pt1, Size(100, 50));
+		Point pt1(200, 10);
+		Rect rect(pt1, Size(200, 20));
 
 		rectangle(*frame, rect, Scalar(0, 0, 0), 2);
 

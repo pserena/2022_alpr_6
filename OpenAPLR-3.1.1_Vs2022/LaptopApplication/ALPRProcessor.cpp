@@ -13,7 +13,7 @@ int process_count = 0;
 
 int counter = 0;
 
-int save_count = 0;
+int change_count = 0;
 
 void ALPRProcessor::process(Mat frame)
 {
@@ -59,30 +59,32 @@ void ALPRProcessor::process(Mat frame)
 			}
 		}
 
-		if (!found)
+		//if (!found)
 		{
 			Mat plate_cropped;
 			string rs = results.plates[i].bestPlate.characters.c_str();
 
-			printf("last:%d cur:%d\n", last_point.x, psi[0].x);
-
-			if (process_count == 0 || abs(last_point.x - psi[0].x) > 90)
+			if (process_count == 0 || abs(last_point.x - psi[0].x) > 100)
 			{
 				plate_uid++;
 				max_confidence = results.plates[i].bestPlate.overall_confidence;
 				plate_cropped = frame(rect & totalrect);
 
-				save_count = 0;
+				change_count = 0;
 			}
 
-			// one time change allowed
-			if (max_confidence < results.plates[i].bestPlate.overall_confidence) {
-				plate_cropped = frame(rect & totalrect);
-				max_confidence = INT_MAX;
-
-				save_count++;
+			if (max_confidence < results.plates[i].bestPlate.overall_confidence
+				|| found) {
+				max_confidence = results.plates[i].bestPlate.overall_confidence;
+				change_count++;
+				if (change_count <= 3)
+					plate_cropped = frame(rect & totalrect);
 			}
 
+			printf("last:%d cur:%d puid:%d count:%d str:%s\n", last_point.x, psi[0].x,
+				plate_uid, change_count, rs.c_str());
+
+#if 0
 			if (!plate_cropped.empty())
 			{
 				char fn[128];
@@ -90,6 +92,7 @@ void ALPRProcessor::process(Mat frame)
 				imwrite(fn, plate_cropped);
 				printf("crop %d %d\n", plate_uid, save_count);
 			}
+#endif
 			
 			viManager->setRecognizedInfo(rs, plate_uid, plate_cropped);
 		}
