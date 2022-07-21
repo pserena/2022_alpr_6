@@ -8,11 +8,12 @@ using namespace client;
 char LastPlates[NUMBEROFPREVIOUSPLATES][64] = { "","","","","" };
 unsigned int CurrentPlate = 0;
 Point2i last_point(0, 0);
-int max_point_num = 0;
 float max_confidence = 0.0f;
 int process_count = 0;
 
 int counter = 0;
+
+int image_save_count = 0;
 
 void ALPRProcessor::process(Mat frame)
 {
@@ -29,6 +30,7 @@ void ALPRProcessor::process(Mat frame)
 	{
 		char textbuffer[1024];
 		bool found = false;
+		bool update_image = false;
 		std::vector<cv::Point2f> pointset;
 		std::vector<cv::Point2i> psi;
 
@@ -52,11 +54,6 @@ void ALPRProcessor::process(Mat frame)
 		{
 			if (strcmp(results.plates[i].bestPlate.characters.c_str(), LastPlates[x]) == 0)
 			{
-				if (max_confidence < results.plates[i].bestPlate.overall_confidence)
-				{
-					max_confidence = results.plates[i].bestPlate.overall_confidence;
-					max_point_num = x;
-				}
 				found = true;
 				break;
 			}
@@ -70,7 +67,17 @@ void ALPRProcessor::process(Mat frame)
 			if (process_count == 0 || abs(last_point.x - psi[0].x) > 80)
 			{
 				plate_uid++;
+				max_confidence = results.plates[i].bestPlate.overall_confidence;
 				plate_cropped = frame(rect & totalrect);
+
+				image_save_count = 0;
+			}
+
+			if (max_confidence < results.plates[i].bestPlate.overall_confidence) {
+				plate_cropped = frame(rect & totalrect);
+				max_confidence = results.plates[i].bestPlate.overall_confidence;
+
+				image_save_count++;
 			}
 
 			viManager->setRecognizedInfo(rs, plate_uid, plate_cropped);

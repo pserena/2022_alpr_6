@@ -291,8 +291,6 @@ void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonR
             if (space_length > 0)
                 space.append(space_length, ' ');
 
-            printf("status %d space %d %d\n", status.length(), space_length, space.length());
-
             sprintf_s(aligned_status, sizeof(aligned_status), "%s %s", space.c_str(), status.c_str());
 
             char owner_info[256];
