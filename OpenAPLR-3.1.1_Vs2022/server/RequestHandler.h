@@ -48,6 +48,7 @@ public:
 	void handle(UINT_PTR id, string request, function<void(string)> callback);
 	void connect(UINT_PTR id);
 	void disconnect(UINT_PTR id);
+	void fileWriteInformation();
 
 private:
 	string GetLoginAccount(UINT_PTR id) {
