@@ -359,6 +359,21 @@ void UIManager::RefreshUI(void)
 
     UpdateVideo();
 }
+    if (vehicle_count) {
+        info.copyTo(vtext);
+        pimag.copyTo(vimg);
+    }
+    if (alert_count) {
+        ainfo.copyTo(atext);
+        pimag.copyTo(aimg);
+
+        cv::putText(aimg, "A L E R T",
+            cv::Point(200, 20),
+            FONT_HERSHEY_DUPLEX, 0.7,
+            Scalar(0, 0, 255), 1, LINE_AA, false
+        );
+    }
+}
 
 void UIManager::UpdateVideo(void)
 {
