@@ -48,14 +48,23 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
-	//mapVehicleNum.insert(make_pair(rs, make_pair(puid, time(NULL)));
-	mapVehicleNum[rs] = make_pair(puid, GetTickCount64());
-	if (!pimag.empty()) {
-		Mat copy;
-		pimag.copyTo(copy);
-		mapVehicleImg[puid] = copy;
+	if (mapVehicleNum.find(rs) == mapVehicleNum.end()) {
+		//mapVehicleNum.insert(make_pair(rs, make_pair(puid, time(NULL)));
+		mapVehicleNum[rs] = make_pair(puid, GetTickCount64());
+		if (!pimag.empty()) {
+			Mat copy;
+			pimag.copyTo(copy);
+			mapVehicleImg.insert(make_pair(puid, copy));
+		}
+		commMan->sendRecognizedInfo(rs, puid);
 	}
-	commMan->sendRecognizedInfo(rs, puid);
+	else {
+		if (!pimag.empty()) {
+			Mat copy;
+			pimag.copyTo(copy);
+			mapVehicleImg[puid] = copy;
+		}
+	}
 
 	return 0;
 }
