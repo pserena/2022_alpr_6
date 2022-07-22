@@ -358,7 +358,9 @@ ssize_t ReadDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, siz
     {
         bytes = recv(TcpConnectedPort->ConnectedFd, (char*)(receiveData + i), (int)(encryptedLength - i), 0);
         if (bytes == -1) {
-            cout << "Recv failed : " << bytes << " encryptedLength : " << encryptedLength << " length : " << length << endl;
+            char buf[256];
+            strerror_s(buf, sizeof(buf), errno);
+            cout << "Recv failed : " << bytes << " error : " << buf << endl;
             return -1;
         }
     }

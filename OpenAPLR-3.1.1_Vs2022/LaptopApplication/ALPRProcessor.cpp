@@ -81,10 +81,11 @@ void ALPRProcessor::process(Mat frame)
 					plate_cropped = frame(rect & totalrect);
 			}
 
+#if 0
 			printf("last:%d cur:%d puid:%d count:%d str:%s\n", last_point.x, psi[0].x,
 				plate_uid, change_count, rs.c_str());
 
-#if 0
+
 			if (!plate_cropped.empty())
 			{
 				char fn[128];
