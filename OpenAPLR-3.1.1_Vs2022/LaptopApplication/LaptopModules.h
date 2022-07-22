@@ -67,6 +67,7 @@ namespace client
 		void PrintErrMsg(std::string msg);
 		void UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonRetPlateInfo, int nError);
 		void UpdateVideo(void);
+		void RefreshUI(void);
 
 		void destroyAll(void) {
 			destroyAllWindows();

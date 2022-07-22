@@ -1,8 +1,11 @@
-#include "RequestHandler.h"
 #include <string>
 #include <algorithm>
 #include <random>
 #include <thread>
+#include <fstream>
+#include <iostream>
+
+#include "RequestHandler.h"
 
 using namespace std;
 
@@ -156,6 +159,67 @@ void RequestHandler::printInformation() {
 		cout << "--------------------" << endl;
 		Sleep(1000);
 	}
+
+}
+
+
+void RequestHandler::fileWriteInformation()
+{
+	string fileName("team6.result.log");
+	ofstream ofile;
+	ofile.open(fileName.c_str(), std::ofstream::out);
+
+	if (!ofile.is_open())
+	{
+		cerr << "failed to open the log file." << fileName << endl;
+		return;
+	}
+
+	Statistics prev_s;
+	map<string, uint32_t> query_per_sec;
+	//return; // To see the other log, need to uncomment this line
+	Statistics s;
+	uint32_t total_queyr_per_sec = 0;
+	uint32_t q;
+	if (!SessionLoginAccounts.empty()) {
+		ofile << "-- Logged in user --" << endl;
+		for (auto la : SessionLoginAccounts) {
+			ofile << " " << la.second << endl;
+		}
+		ofile << "--------------------" << endl;
+	}
+	for (const auto& it : statistics_) {
+		s.total_queries += it.second.total_queries;
+		s.exact_match += it.second.exact_match;
+		s.partial_match += it.second.partial_match;
+		s.no_match += it.second.no_match;
+		ofile << "User : " << it.first << endl;
+
+		ofile << "Query : " << it.second.total_queries << endl;
+		ofile << "Match : " << it.second.exact_match << endl;
+		ofile << "Partial match : " << it.second.partial_match << endl;
+		ofile << "No match : " << it.second.no_match << endl;
+
+		if (query_per_sec.find(it.first) != query_per_sec.end()) {
+			q = it.second.total_queries - query_per_sec[it.first];	
+		}
+		else {
+			q = it.second.total_queries;
+		}
+		ofile << "Query per sec : " << q << endl;
+		total_queyr_per_sec += q;
+		query_per_sec[it.first] = it.second.total_queries;
+		ofile << "--------------------" << endl;
+	}
+	ofile << "Total" << endl;
+	ofile << "Query : " << s.total_queries << endl;
+	ofile << "Match : " << s.exact_match << endl;
+	ofile << "Partial match : " << s.partial_match << endl;
+	ofile << "No match : " << s.no_match << endl;
+
+	ofile << "Query per sec : " << total_queyr_per_sec << endl;
+	ofile << "--------------------" << endl;
+	ofile.close();
 
 }
 

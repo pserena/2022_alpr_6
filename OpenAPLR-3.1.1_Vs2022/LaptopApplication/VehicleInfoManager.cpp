@@ -11,6 +11,10 @@ using json = nlohmann::json;
 map<string, pair<int, ULONGLONG>> mapVehicleNum;
 map<int, Mat> mapVehicleImg;
 map<int, json> mapVehicleJson;
+map<string, pair<int, int>> mapRsCount; // puid, count
+
+map<int, int> mapPlateMatchCount;
+map<int, pair<string, int>> mapPlateFoundStringCount;
 
 static int receiveThread(VehicleInfoManager* vehicleMan);
 
@@ -49,25 +53,32 @@ int VehicleInfoManager::sendVehicleInfo(unsigned char* vehicleData) {
 int VehicleInfoManager::setRecognizedInfo(string rs, int puid, Mat pimag)
 {
 	if (mapVehicleNum.find(rs) == mapVehicleNum.end()) {
-		printf("\n************************************* %s\n", rs);
 		//mapVehicleNum.insert(make_pair(rs, make_pair(puid, time(NULL)));
 		mapVehicleNum[rs] = make_pair(puid, GetTickCount64());
-		if (!pimag.empty()) {
-			Mat copy;
-			pimag.copyTo(copy);
-			mapVehicleImg.insert(make_pair(puid, copy));
-			if (mapVehicleJson.find(puid) != mapVehicleJson.end()) {
-				json jsonRetPlateInfo = mapVehicleJson.find(puid)->second;
-				ui->UpdateVinfo(rs, puid, copy, jsonRetPlateInfo, 0);
-				printf("\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s\n", rs);
-			}
-		}
-		printf("\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %s\n", rs);
+		mapRsCount[rs] = make_pair(puid, 0);
+		
 		commMan->sendRecognizedInfo(rs, puid);
+	}
+	else {
+		mapRsCount.find(rs)->second.second++;
+	}
+
+	if (!pimag.empty()) {
+		Mat copy;
+		pimag.copyTo(copy);
+		mapVehicleImg[puid] = copy;
+		if (mapVehicleJson.find(puid) != mapVehicleJson.end()) {
+			json jsonRetPlateInfo = mapVehicleJson.find(puid)->second;
+			ui->UpdateVinfo(rs, puid, copy, jsonRetPlateInfo, 0);
+		}
+		else
+			mapPlateMatchCount[puid] = 0;
 	}
 
 	return 0;
 }
+
+int exact_count = 0;
 
 int VehicleInfoManager::receiveCommunicationData(void)
 {
@@ -90,24 +101,38 @@ int VehicleInfoManager::receiveCommunicationData(void)
 				if (responseJson["response_code"] == 200 && responseJson["response"]["numFound"] != 0) {
 					string strPlateUID = responseJson["plate_uid"];
 					int nPlateUID = stoi(strPlateUID);
-					if (mapVehicleJson.find(nPlateUID) == mapVehicleJson.end()) {
-						const string& query = responseJson["responseHeader"]["params"]["q"];
+					const string& query = responseJson["responseHeader"]["params"]["q"];
+					bool exact_result = false;
+					int cur_exact_count = 0;
+
+					if (query.find("~") == string::npos) {
+						exact_result = true;
+						cur_exact_count = mapRsCount.find(plate_number)->second.second;
+					}
+
+					if (mapVehicleJson.find(nPlateUID) == mapVehicleJson.end() 
+						|| (mapVehicleJson.find(nPlateUID) != mapVehicleJson.end() &&
+							exact_result && cur_exact_count > exact_count)) {
 						Mat pimag = mapVehicleImg.find(puid)->second;
 						json jsonRetPlateInfo = responseJson["response"];
-						if (query.find("~") == string::npos) {
+
+						mapPlateMatchCount[puid]++;
+
+						if (mapPlateMatchCount[puid] > 1)
+							ui->RefreshUI();
+
+						if (exact_result) {
 							mapVehicleJson.insert(make_pair(nPlateUID, jsonRetPlateInfo));
+							exact_count = cur_exact_count;
 						}
 
 						ui->UpdateVinfo(plate_number, puid, pimag, jsonRetPlateInfo, (int)receiveError);
 					}
-					//else {
-					//	printf("\n\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %d\n\n\n", nPlateUID);
-					//}
 				}
 
 				vector<string> vecPlateNum;
 				auto request_time = mapVehicleNum.find(plate_number)->second.second;
-				int num = responseJson["response"]["docs"].size();
+				size_t num = responseJson["response"]["docs"].size();
 				for (int i = 0; i < num; i++) {
 					string plate_number = responseJson["response"]["docs"].at(i)["plate_number"].at(0).get<string>();
 					vecPlateNum.push_back(plate_number);
@@ -130,7 +155,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 		}
 		catch (json::parse_error& ex)
 		{
-			printf("\n\n\n###################################### %d\n\n\n", ex.byte);
+			printf("\n\n\n###################################### %zd\n\n\n", ex.byte);
 			//exit(1);
 		}
 	}
@@ -138,7 +163,7 @@ int VehicleInfoManager::receiveCommunicationData(void)
 		if (!receiveError) {
 			receiveError = true;
 			errorStartTime = time(NULL);
-			printf("receive error start = %d\n", errorStartTime);
+			printf("receive error start = %zd\n", errorStartTime);
 		}
 		else {
 			static time_t curTime = time(NULL);

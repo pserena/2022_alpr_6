@@ -329,22 +329,40 @@ void UIManager::UpdateVinfo(string plate_number, int puid, Mat pimag, json jsonR
         } 
     }
 
-    cv::resize(pimag, pimag, Size(VI_WIDTH, 100));
+    if (pimag.empty())
+        printf("plate image empty \n");
+    else {
+        cv::resize(pimag, pimag, Size(VI_WIDTH, 100));
+        if (vehicle_count) {
+            info.copyTo(vtext);
+            pimag.copyTo(vimg);
+        }
+        if (alert_count) {
+            ainfo.copyTo(atext);
+            pimag.copyTo(aimg);
 
-    if (vehicle_count) {
-        info.copyTo(vtext);
-        pimag.copyTo(vimg);
+            cv::putText(aimg, "A L E R T",
+                cv::Point(200, 20),
+                FONT_HERSHEY_DUPLEX, 0.7,
+                Scalar(0, 0, 255), 1, LINE_AA, false
+            );
+        }
     }
-    if (alert_count) {
-        ainfo.copyTo(atext);
-        pimag.copyTo(aimg);
+}
 
-        cv::putText(aimg, "A L E R T",
-            cv::Point(200, 20),
-            FONT_HERSHEY_DUPLEX, 0.7,
-            Scalar(0, 0, 255), 1, LINE_AA, false
-        );
-    }
+void UIManager::RefreshUI(void)
+{
+    Mat info(vtext.size(), CV_8UC3, Scalar(255, 255, 255));
+    Mat img(vimg.size(), CV_8UC3, Scalar(255, 255, 255));
+    Mat ainfo(atext.size(), CV_8UC3, Scalar(255, 255, 255));
+    Mat aimage(aimg.size(), CV_8UC3, Scalar(255, 255, 255));
+
+    info.copyTo(vtext);
+    img.copyTo(vimg);
+    ainfo.copyTo(atext);
+    aimage.copyTo(aimg);
+
+    UpdateVideo();
 }
 
 void UIManager::UpdateVideo(void)

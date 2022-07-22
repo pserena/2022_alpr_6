@@ -21,10 +21,23 @@
 #include <thread>
 #include <fstream>
 
+#include <iostream>
+#include <cstdlib>
+#include <signal.h>
+
 #include "RequestHandler.h"
 #include "AesManager.h"
 
 using namespace std;
+
+
+RequestHandler rh;
+
+void signal_callback_handler(int signum) {
+    cout << "Caught signal " << signum << endl;
+    rh.fileWriteInformation();
+    exit(signum);
+}
 
 #ifndef SOLRDB
 
@@ -139,7 +152,9 @@ int main()
     FD_SET ReadSet;
 
     long long max_search_time = 0;
-    RequestHandler rh;
+	
+	signal(SIGINT, signal_callback_handler);
+	
     while (TRUE)
     {
         int Total;
