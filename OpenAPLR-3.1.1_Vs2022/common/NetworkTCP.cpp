@@ -14,7 +14,7 @@
 #include "../aes256/include/aes256.hpp"
 #include <mstcpip.h>
 
-using namespace std;
+#define KEEP_ALIVE_TIME 1000
 
 #pragma comment (lib, "../x64/Release/aes256.lib")
 
@@ -176,8 +176,8 @@ TTcpConnectedPort *AcceptTcpConnection(TTcpListenPort *TcpListenPort,
   DWORD dwError = 0L;
   tcp_keepalive sKA_Settings = { 0 }, sReturned = { 0 };
   sKA_Settings.onoff = 1;
-  sKA_Settings.keepalivetime = 50;
-  sKA_Settings.keepaliveinterval = 50;
+  sKA_Settings.keepalivetime = KEEP_ALIVE_TIME;
+  sKA_Settings.keepaliveinterval = KEEP_ALIVE_TIME;
   DWORD dwBytes;
 
   if (WSAIoctl(TcpConnectedPort->ConnectedFd, SIO_KEEPALIVE_VALS, &sKA_Settings, sizeof(sKA_Settings),
@@ -279,8 +279,8 @@ TTcpConnectedPort *OpenTcpConnection(const char *remotehostname, const char * re
   DWORD dwError = 0L;
   tcp_keepalive sKA_Settings = { 0 }, sReturned = { 0 };
   sKA_Settings.onoff = 1;
-  sKA_Settings.keepalivetime = 50;
-  sKA_Settings.keepaliveinterval = 50;
+  sKA_Settings.keepalivetime = KEEP_ALIVE_TIME;
+  sKA_Settings.keepaliveinterval = KEEP_ALIVE_TIME;
   DWORD dwBytes;
 
   if (WSAIoctl(TcpConnectedPort->ConnectedFd, SIO_KEEPALIVE_VALS, &sKA_Settings, sizeof(sKA_Settings),
