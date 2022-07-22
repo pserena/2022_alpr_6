@@ -59,6 +59,9 @@ void ALPRProcessor::process(Mat frame)
 			}
 		}
 
+		if (psi[0].x <= 0)
+			continue;
+
 		//if (!found)
 		{
 			Mat plate_cropped;

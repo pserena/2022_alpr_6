@@ -16,6 +16,9 @@ map<string, pair<int, int>> mapRsCount; // puid, count
 map<int, int> mapPlateMatchCount;
 map<int, pair<string, int>> mapPlateFoundStringCount;
 
+enum class MatchStatus { None, Dist2Matched, Dist1Matched };
+map<int, MatchStatus> mapPuidMatchStatus;
+
 static int receiveThread(VehicleInfoManager* vehicleMan);
 
 VehicleInfoManager::VehicleInfoManager(UIManager* uiManager) {
@@ -108,6 +111,17 @@ int VehicleInfoManager::receiveCommunicationData(void)
 					if (query.find("~") == string::npos) {
 						exact_result = true;
 						cur_exact_count = mapRsCount.find(plate_number)->second.second;
+					}
+
+					if (query.find("~1") != string::npos) {
+						if (mapPuidMatchStatus[puid] < MatchStatus::Dist1Matched)
+							mapPuidMatchStatus[puid] = MatchStatus::Dist1Matched;
+					}
+					else if (query.find("~2") != string::npos) {
+						if (mapPuidMatchStatus[puid] < MatchStatus::Dist2Matched)
+							mapPuidMatchStatus[puid] = MatchStatus::Dist2Matched;
+						else if (mapPuidMatchStatus[puid] > MatchStatus::Dist2Matched)
+							return 0;
 					}
 
 					if (mapVehicleJson.find(nPlateUID) == mapVehicleJson.end() 

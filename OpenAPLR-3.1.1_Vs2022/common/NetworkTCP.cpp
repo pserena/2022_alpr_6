@@ -14,7 +14,7 @@
 #include "../aes256/include/aes256.hpp"
 #include <mstcpip.h>
 
-#define KEEP_ALIVE_TIME 1000
+#define KEEP_ALIVE_TIME 100
 
 #pragma comment (lib, "../x64/Release/aes256.lib")
 
