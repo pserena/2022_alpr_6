@@ -36,12 +36,21 @@
     <ClCompile Include="..\common\NetworkTCP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\common\md5.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OpenCVDeviceEnumerator\DeviceEnumerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\common\NetworkTCP.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\md5.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

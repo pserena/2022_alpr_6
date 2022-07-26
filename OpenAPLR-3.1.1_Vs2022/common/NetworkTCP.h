@@ -16,6 +16,8 @@ typedef SSIZE_T ssize_t;
 #define  SOCKET_FD_TYPE SOCKET
 #define  BAD_SOCKET_FD INVALID_SOCKET
 
+#define AES_ENCRYPTION  (TRUE)     // decision for applying AES256 encryption
+#define TCP_KEEPALIVE   (TRUE)     // decision for using TCP KEEPALIVE
 
 //------------------------------------------------------------------------------------------------
 // Types
@@ -42,7 +44,7 @@ TTcpConnectedPort *OpenTcpConnection(const char *remotehostname, const char * re
 void CloseTcpConnectedPort(TTcpConnectedPort **TcpConnectedPort);
 ssize_t ReadDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, size_t length);
 ssize_t BytesAvailableTcp(TTcpConnectedPort* TcpConnectedPort);
-ssize_t WriteDataTcp(TTcpConnectedPort *TcpConnectedPort,unsigned char *data, size_t length);
+ssize_t WriteDataTcp(TTcpConnectedPort *TcpConnectedPort,const unsigned char *data, size_t length);
 #endif
 //------------------------------------------------------------------------------------------------
 //END of Include

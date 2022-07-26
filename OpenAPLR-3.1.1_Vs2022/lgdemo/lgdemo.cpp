@@ -1,22 +1,27 @@
 // lgdemo.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
+
 #include "NetworkTCP.h"
 #include <windows.h>
 #include <map>
 #include <iostream>
 #include <stdlib.h>
-#include <tchar.h> 
+#include <tchar.h>
+#include <fstream>
+#include <cstring>
+
 #include "opencv2/opencv.hpp"
 #include "support/timing.h"
 #include "motiondetector.h"
 #include "alpr.h"
 #include "DeviceEnumerator.h"
-
+#include "json.hpp"
+#include "md5.h"
 
 using namespace alpr;
 using namespace std;
 using namespace cv;
-
+using json = nlohmann::json;
 
 enum class Mode { mNone, mLogin, mLogout, mPlayback_Video, mImage_File, mTest_Connection };
 enum class VideoResolution { rNone, r640X480, r1280X720 };
@@ -24,8 +29,8 @@ enum class VideoSaveMode { vNone, vNoSave, vSave, vSaveWithNoALPR};
 enum class ResponseMode { ReadingHeader,ReadingMsg };
 
 ResponseMode GetResponseMode= ResponseMode::ReadingHeader;
-short RespHdrNumBytes;
-char ResponseBuffer[2048];
+size_t RespHdrNumBytes;
+char ResponseBuffer[8192];
 unsigned int BytesInResponseBuffer = 0;
 ssize_t BytesNeeded = sizeof(RespHdrNumBytes);
 
@@ -42,18 +47,26 @@ double _avgdur = 0;
 double _fpsstart = 0;
 double _avgfps = 0;
 double _fps1sec = 0;
+double totRec = 0;
+double maxRec = 0;
 TTcpConnectedPort* TcpConnectedPort;
 
 #define NUMBEROFPREVIOUSPLATES 10
 char LastPlates[NUMBEROFPREVIOUSPLATES][64]={"","","","",""};
 unsigned int CurrentPlate = 0;
 
+string file = "output.txt";
+ofstream write_file(file.data());
+
+string perf_file = "perf.txt";
+ofstream perf_write_file(perf_file.data());
+
 static VideoSaveMode GetVideoSaveMode(void);
 static VideoResolution GetVideoResolution(void);
 static Mode GetVideoMode(void);
 static int GetVideoDevice(void);
 static bool GetFileName(Mode mode, char filename[MAX_PATH]);
-static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson);
+static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson, double *recTime);
 static void InitCounter();
 static double CLOCK();
 static bool getconchar(KEY_EVENT_RECORD& krec);
@@ -63,8 +76,165 @@ static void GetResponses(void);
 /***********************************************************************************/
 /* Main                                                                            */
 /***********************************************************************************/
+
+void TestJson(string &message)
+{
+    unsigned short SendPlateStringLength;
+    unsigned short SendMsgHdr;
+    ssize_t result;
+    
+    SendPlateStringLength = (unsigned short)strlen(message.c_str()) + 1;
+    SendMsgHdr = htons(SendPlateStringLength);
+    if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendPlateStringLength))
+        cout << "WriteDataTcp " << result << endl;
+    if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)message.c_str(), SendPlateStringLength)) != SendPlateStringLength)
+        cout << "WriteDataTcp " << result << endl;
+    cout << "sent ->" << message.c_str() << endl;
+
+    bool readDone = FALSE;
+    while (!readDone)
+    {
+        ssize_t BytesRead;
+        ssize_t BytesOnSocket = 0;
+        while ((BytesOnSocket = BytesAvailableTcp(TcpConnectedPort)) > 0)
+        {
+            if (BytesOnSocket < 0) return;
+            if (BytesOnSocket > BytesNeeded) BytesOnSocket = BytesNeeded;
+            ZeroMemory(&ResponseBuffer, sizeof(ResponseBuffer));
+            BytesRead = ReadDataTcp(TcpConnectedPort, (unsigned char*)&ResponseBuffer[BytesInResponseBuffer], BytesOnSocket);
+            if (BytesRead <= 0)
+            {
+                printf("Read Response Error - Closing Socket\n");
+                CloseTcpConnectedPort(&TcpConnectedPort);
+            }
+            BytesInResponseBuffer += BytesRead;
+
+            if (BytesInResponseBuffer == BytesNeeded)
+            {
+                if (GetResponseMode == ResponseMode::ReadingHeader)
+                {
+                    memcpy(&RespHdrNumBytes, ResponseBuffer, sizeof(RespHdrNumBytes));
+                    RespHdrNumBytes = ntohs(RespHdrNumBytes);
+                    GetResponseMode = ResponseMode::ReadingMsg;
+                    BytesNeeded = RespHdrNumBytes;
+                    BytesInResponseBuffer = 0;
+                    cout << "---Size : " << BytesNeeded << endl;
+                }
+                else if (GetResponseMode == ResponseMode::ReadingMsg)
+                {
+                    printf("Response %s\n", ResponseBuffer);
+
+                    json responseJson = json::parse(ResponseBuffer);
+                    if (responseJson["request_type"] == "query")
+                    {
+                        string q = responseJson["responseHeader"]["params"]["q"].get<std::string>();
+                        cout << "[TestJson] query stirng: " << q << endl;
+
+                        json docs = responseJson["response"]["docs"];
+                        cout << "[TestJson] size of plate info: " << docs.size() << endl;
+
+                        for (auto i = 0; i< docs.size(); ++i)
+                        {
+                            cout << "[TestJson] " << i << ": " << "plate_number: " << docs.at(i)["plate_number"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "status: " << docs.at(i)["status"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "reg_expiration: " << docs.at(i)["reg_expiration"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "owner_name: " << docs.at(i)["owner_name"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "owner_birthdate: " << docs.at(i)["owner_birthdate"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "owner_address_1: " << docs.at(i)["owner_address_1"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "owner_address_2: " << docs.at(i)["owner_address_2"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "vehicle_year: " << docs.at(i)["vehicle_year"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "vehicle_make: " << docs.at(i)["vehicle_make"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "vehicle_model: " << docs.at(i)["vehicle_model"].at(0) << endl;
+                            cout << "[TestJson] " << i << ": " << "vehicle_color: " << docs.at(i)["vehicle_color"].at(0) << endl;
+                        }
+                    }
+
+                    GetResponseMode = ResponseMode::ReadingHeader;
+                    BytesInResponseBuffer = 0;
+                    BytesNeeded = sizeof(RespHdrNumBytes);
+
+                    readDone = TRUE;
+                    break;
+                }
+            }
+        }
+
+        if (BytesOnSocket < 0)
+        {
+            printf("Read Response Error - Closing Socket\n");
+            CloseTcpConnectedPort(&TcpConnectedPort);
+        }
+
+        if (readDone)
+        {
+            break;
+        }
+        Sleep(5000);
+
+    }
+
+    return;
+}
+
+void TestJsonDataFormat()
+{
+    while (TRUE)
+    {
+        if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL)
+        {
+            std::cout << "Connection Failed. Retry..." << std::endl;
+            //return(-1);
+            Sleep(5000);
+        }
+        else
+        {
+            std::cout << "Connected" << std::endl;
+            break;
+        }
+    }
+
+    auto jsonMessageLogin = R"(
+        {
+            "request_type": "login",
+            "user_id" : "daniel",
+            "user_password" : "1qaz2wsx"
+        }
+    )"_json;
+    /*
+    auto jsonMessageLogin = R"(
+        {
+            "request_type": "login",
+            "user_id" : "daniel",
+            "user_password" : "1qaz2wsxaa"
+        }
+    )"_json;
+    */
+
+    string messageLogin = jsonMessageLogin.dump();
+
+    TestJson(messageLogin);
+
+    auto jsonMessage = R"(
+            {
+                "request_type": "query",
+                "plate_number" : "ABC123",
+                "plate_uid" : 111
+            }
+        )"_json;
+
+    string message = jsonMessage.dump();
+
+    while (TRUE) {
+        TestJson(message);
+        Sleep(5000);
+    }
+}
+
 int main()
 {
+//    TestJsonDataFormat();
+//    return 0;
+
     Mode mode;
     VideoSaveMode videosavemode;
     VideoResolution vres = VideoResolution::rNone;
@@ -81,13 +251,22 @@ int main()
 
     std::string county;
 
-
-    if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL)
+    while (TRUE)
     {
-        std::cout << "Connection Failed" << std::endl;
-        return(-1);
+        if ((TcpConnectedPort = OpenTcpConnection("127.0.0.1", "2222")) == NULL)
+        {
+            std::cout << "Connection Failed. Retry..." << std::endl;
+            //return(-1);
+            Sleep(5000); //1ÃÊÁ¤
+        }
+        else
+        {
+            std::cout << "Connected" << std::endl;
+            break;
+        }
+
     }
-    else std::cout << "Connected" << std::endl;
+    //else std::cout << "Connected" << std::endl;
 
     county = "us";
 
@@ -102,8 +281,9 @@ int main()
         }
 
         if (mode == Mode::mLogin) {
-            continue;
-        } else if (mode == Mode::mLogout) {
+            cout << "md5 of login. Example: 'grape': " << md5("grape") << endl;
+        }
+        else if (mode == Mode::mLogout) {
             continue;
         }
 
@@ -165,11 +345,11 @@ int main()
             }
         }
 
-
         while (1) {
 
             Mat frame;
             double start = CLOCK();
+            double recTime;
             // Capture frame-by-frame
             if (mode == Mode::mImage_File)
             {
@@ -185,7 +365,7 @@ int main()
             if (frameno == 0) motiondetector.ResetMotionDetection(&frame);
             if (videosavemode != VideoSaveMode::vSaveWithNoALPR)
             {
-                detectandshow(&alpr, frame, "", false);
+                detectandshow(&alpr, frame, "", false, &recTime);
                 GetResponses();
 
                 cv::putText(frame, text,
@@ -200,7 +380,7 @@ int main()
                 outputVideo.write(frame);
             }
 
-            // Display the resulting frame
+            // Display the resulting frame    
             imshow("Frame", frame);
 
             // Press  ESC on keyboard to  exit
@@ -209,6 +389,12 @@ int main()
                 break;
             double dur = CLOCK() - start;
             sprintf_s(text, "avg time per frame %f ms. fps %f. frameno = %d", avgdur(dur), avgfps(), frameno++);
+
+            totRec += recTime;
+            if (recTime > maxRec)
+                maxRec = recTime;
+
+            perf_write_file << "fn:" << setw(8) << frameno << " cur:" << setw(8) << recTime << " avg:" << setw(8) << totRec / frameno << " max:" << setw(8) << maxRec << endl;
         }
 
         // When everything done, release the video capture and write object
@@ -217,8 +403,9 @@ int main()
 
         // Closes all the frames
         destroyAllWindows();
+        write_file.close();
+        perf_write_file.close();
     }
-
     
     return 0;
 }
@@ -228,7 +415,7 @@ int main()
 /***********************************************************************************/
 /* detectandshow                                                                   */
 /***********************************************************************************/
-static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson)
+static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson, double *processTime)
 {
 
     timespec startTime;
@@ -253,6 +440,8 @@ static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool wr
     if (measureProcessingTime)
         std::cout << "Total Time to process image: " << totalProcessingTime << "ms." << std::endl;
 
+    *processTime = totalProcessingTime;
+
 
     if (writeJson)
     {
@@ -274,6 +463,10 @@ static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool wr
                 cv::Point(rect.x, rect.y-5), //top-left position
                 FONT_HERSHEY_COMPLEX_SMALL, 1,
                 Scalar(0, 255, 0), 0, LINE_AA, false);
+
+            for (int k = 0; k < results.plates[i].topNPlates.size(); k++) {
+                write_file << "top" << k << setw(10) << results.plates[i].topNPlates[k].characters.c_str() << " " << results.plates[i].topNPlates[k].overall_confidence << endl;
+            }
             if (TcpConnectedPort)
             {
                 bool found = false;
@@ -295,6 +488,7 @@ static bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool wr
                     if ((result = (int)WriteDataTcp(TcpConnectedPort, (unsigned char*)results.plates[i].bestPlate.characters.c_str(), SendPlateStringLength)) != SendPlateStringLength)
                         printf("WriteDataTcp %d\n", result);
                     printf("sent ->%s\n", results.plates[i].bestPlate.characters.c_str());
+                    write_file << setw(10) << results.plates[i].bestPlate.characters.c_str() << " " << results.plates[i].bestPlate.overall_confidence  << endl;
                 }
             }
             strcpy_s(LastPlates[CurrentPlate], results.plates[i].bestPlate.characters.c_str());
@@ -623,6 +817,7 @@ static void GetResponses(void)
              GetResponseMode = ResponseMode::ReadingMsg;
              BytesNeeded = RespHdrNumBytes;
              BytesInResponseBuffer = 0;
+             cout << "---Size : " << BytesNeeded << endl;
          }
          else if (GetResponseMode == ResponseMode::ReadingMsg)
          {

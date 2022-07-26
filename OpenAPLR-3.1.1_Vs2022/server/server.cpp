@@ -1,110 +1,45 @@
 // server.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
+#define NOMINMAX
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
+#define SOLRDB
 
 #include <iostream>
 #include <string.h>
 #include "NetworkTCP.h"
 #include <Windows.h>
+#ifndef SOLRDB
 #include <db.h> 
+#endif
 #include <unordered_set>
 #include <memory>
-#include <chrono>
+#include <mutex>
 
 #include <stdio.h>
 #include <thread>
-#include <winhttp.h>
+#include <fstream>
 
-#pragma comment(lib, "winhttp.lib")
+#include <iostream>
+#include <cstdlib>
+#include <signal.h>
 
+#include "RequestHandler.h"
+#include "AesManager.h"
 
 using namespace std;
 
-/* This is sample code for HTTP to communicate with Solr DB */
-void getVehicleInfo(const wstring& plate) {
-    DWORD dwSize = 0;
-    DWORD dwDownloaded = 0;
-    LPSTR pszOutBuffer;
-    BOOL  bResults = FALSE;
-    HINTERNET  hSession = NULL,
-        hConnect = NULL,
-        hRequest = NULL;
-//http://localhost:8983/solr/localDocs/select?q=487YNB:IBZ801
-    // Use WinHttpOpen to obtain a session handle.
-    hSession = WinHttpOpen(L"WinHTTP Example/1.0",
-        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        WINHTTP_NO_PROXY_NAME,
-        WINHTTP_NO_PROXY_BYPASS, 0);
 
-    // Specify an HTTP server.
-    if (hSession)
-        hConnect = WinHttpConnect(hSession, L"127.0.0.1",
-            8983, 0);
-    wstring url = L"/solr/alpr/select?q=plate_number:" + plate;
+RequestHandler rh;
 
-    // Create an HTTP request handle.
-    if (hConnect)
-        hRequest = WinHttpOpenRequest(hConnect, L"GET", url.c_str(),
-            NULL, WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES,
-            0);
-
-    // Send a request.
-    if (hRequest)
-        bResults = WinHttpSendRequest(hRequest,
-            WINHTTP_NO_ADDITIONAL_HEADERS, 0,
-            WINHTTP_NO_REQUEST_DATA, 0,
-            0, 0);
-
-
-    // End the request.
-    if (bResults)
-        bResults = WinHttpReceiveResponse(hRequest, NULL);
-
-    // Keep checking for data until there is nothing left.
-    if (bResults)
-    {
-        do
-        {
-            // Check for available data.
-            dwSize = 0;
-            if (!WinHttpQueryDataAvailable(hRequest, &dwSize))
-                printf("Error %u in WinHttpQueryDataAvailable.\n",
-                    GetLastError());
-
-            // Allocate space for the buffer.
-            pszOutBuffer = new char[dwSize + 1];
-            if (!pszOutBuffer)
-            {
-                printf("Out of memory\n");
-                dwSize = 0;
-            }
-            else
-            {
-                // Read the data.
-                ZeroMemory(pszOutBuffer, dwSize + 1);
-
-                if (!WinHttpReadData(hRequest, (LPVOID)pszOutBuffer,
-                    dwSize, &dwDownloaded))
-                    printf("Error %u in WinHttpReadData.\n", GetLastError());
-                else
-                    printf("%s", pszOutBuffer);
-
-                // Free the memory allocated to the buffer.
-                delete[] pszOutBuffer;
-            }
-        } while (dwSize > 0);
-    }
-
-
-    // Report any errors.
-    if (!bResults)
-        printf("Error %d has occurred.\n", GetLastError());
-
-    // Close any open handles.
-    if (hRequest) WinHttpCloseHandle(hRequest);
-    if (hConnect) WinHttpCloseHandle(hConnect);
-    if (hSession) WinHttpCloseHandle(hSession);
+void signal_callback_handler(int signum) {
+    cout << "Caught signal " << signum << endl;
+    rh.fileWriteInformation();
+    exit(signum);
 }
+
+#ifndef SOLRDB
 
 bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_len) {
     if (plate.size() > 7)
@@ -121,6 +56,7 @@ bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_le
     key.size = static_cast<u_int32_t>(plate.length()) + 1U;
     if (dbp->get(dbp, NULL, &key, &data, 0) != DB_NOTFOUND)
             return true;
+#if 0
     for (char c = '0'; c <= '9'; c++) {
         if (doPartitionSearch(dbp, plate + c, out, out_len))
             return true;
@@ -129,12 +65,28 @@ bool doPartitionSearch(DB* dbp, const string& plate, char* out, u_int32_t out_le
         if (doPartitionSearch(dbp, plate + c, out, out_len))
             return true;
     }
+#endif
      return false;
 }
 
 bool partialMatch(DB* dbp, char* plate, char* out, u_int32_t out_len) {
     /* Zero out the DBTs before using them. */
     return doPartitionSearch(dbp, string(plate), out, out_len);
+}
+#endif
+
+
+mutex send_lock_;
+void sendResponse(shared_ptr<TTcpConnectedPort> tcp_connected_port, string response) {
+    unsigned short SendMsgHdr = ntohs((u_short)response.length());
+    //cout << "--------- length : " << response.length() << "----------" << endl;
+    {
+        lock_guard<mutex> l(send_lock_);
+        //cout << response.length() << endl;
+        WriteDataTcp(tcp_connected_port.get(), (const unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr));
+        //cout << endl << response << endl;
+        WriteDataTcp(tcp_connected_port.get(), (const unsigned char*)response.c_str(), response.length());
+    }
 }
 
 int main()
@@ -145,15 +97,19 @@ int main()
     struct sockaddr_in cli_addr;
     socklen_t          clilen;
     bool NeedStringLength = true;
-    unsigned short PlateStringLength;
-    char PlateString[1024];
+    unsigned short DataStringLength;
+    char DataString[4096];
+    ofstream log_output_;
+#ifndef SOLRDB
     char DBRecord[2048];
     DB* dbp; /* DB structure handle */
     u_int32_t flags; /* database open flags */
     int ret; /* function return value */
     ssize_t result;
-    /* TODO : Delete */
-    getVehicleInfo(L"IBZ801");
+
+#endif
+
+#ifndef SOLRDB
     /* Initialize the structure. This
      * database is not opened in an environment,
      * so the environment pointer is NULL. */
@@ -179,11 +135,14 @@ int main()
         printf("DB Open Error\n");
         return -1;
     }
-
-    std::cout << "Listening\n";
+#endif
+    log_output_.open("6team.server.log", std::ofstream::out);
+    std::cout << "Start Server" << endl;
+    log_output_ << GetTickCount64() << ": " << "Start Server" << endl;
     if ((TcpListenPort = OpenTcpListenPort(2222)) == NULL)  // Open UDP Network port
     {
         std::cout << "OpenTcpListenPortFailed\n";
+        log_output_ << GetTickCount64() << ": " << "TCP Listen Port Failed " << endl;
         return(-1);
     }
     clilen = sizeof(cli_addr);
@@ -193,6 +152,9 @@ int main()
     FD_SET ReadSet;
 
     long long max_search_time = 0;
+	
+	signal(SIGINT, signal_callback_handler);
+	
     while (TRUE)
     {
         int Total;
@@ -205,10 +167,8 @@ int main()
             nfsd = max(nfsd, static_cast<int>(connected_fd->ConnectedFd));
         }
 
-        printf("Trying select\n");
-        timeval timeout;
-        timeout.tv_sec = 10;
-        timeout.tv_usec = 0;
+        //printf("Trying select\n");
+
         //if (Total = select(nfsd + 1, &ReadSet, NULL, NULL, &timeout) == SOCKET_ERROR)
         /* No use timeout */
         if (Total = select(nfsd + 1, &ReadSet, NULL, NULL, NULL) == SOCKET_ERROR)
@@ -218,7 +178,7 @@ int main()
         }
         else
         {
-            printf("select is OK : Total : %d\n", Total);
+            //printf("select is OK : Total : %d\n", Total);
         }
 
         if (FD_ISSET(TcpListenPort->ListenFd, &ReadSet)) {
@@ -227,70 +187,69 @@ int main()
                 printf("AcceptTcpConnection Failed\n");
                 return(-1);
             }
-            printf("connected\n");
-            connected_ports.insert(shared_ptr<TTcpConnectedPort>(TcpConnectedPort));
-            Total--;
-        }
-        // FIXME : select return 0 when event occurs. But 0 means timeout. Need to figure out.
-        //if(Total != 0) { 
-            for (auto& connected_fd : connected_ports) {
-                if (FD_ISSET(connected_fd->ConnectedFd, &ReadSet)) {
-                    //Total--;
-                    if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateStringLength, sizeof(PlateStringLength)) != sizeof(PlateStringLength))
-                    {
-                        printf("ReadDataTcp 1 error - close socket\n");
-                        closesocket(connected_fd->ConnectedFd);
-                        connected_ports.erase(connected_fd);
-                        break;
-                    }
-                    PlateStringLength = ntohs(PlateStringLength);
-                    if (PlateStringLength > sizeof(PlateString))
-                    {
-                        printf("Plate string length  error\n");
-                        continue;
-                    }
-                    if (ReadDataTcp(connected_fd.get(), (unsigned char*)&PlateString, PlateStringLength) != PlateStringLength)
-                    {
-                        printf("ReadDataTcp 2 error\n");
-                        continue;
-                    }
-                    printf("Plate is : %s\n", PlateString);
-                    auto start_time = std::chrono::milliseconds(GetTickCount64());
-                    if (partialMatch(dbp, PlateString, DBRecord, sizeof(DBRecord)))
-                    {
-                        int sendlength = (int)(strlen((char*)DBRecord) + 1);
-                        short SendMsgHdr = ntohs(sendlength);
-                        if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendMsgHdr))
-                            printf("WriteDataTcp %lld\n", result);
-                        if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)DBRecord, sendlength)) != sendlength)
-                            printf("WriteDataTcp %lld\n", result);
-                        printf("sent ->%s\n", (char*)DBRecord);
-                    }
-#if 0
-                    else {
-                        key.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
-                        key.dlen = 4U;
-                        key.doff = 0;
-                        if (dbp->get(dbp, NULL, &key, &data, 0) != DB_NOTFOUND) {
-                            printf("----------------- FIND Partial!!!\n");
-                            int sendlength = (int)(strlen((char*)data.data) + 1);
-                            short SendMsgHdr = ntohs(sendlength);
-                            if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendMsgHdr))
-                                printf("WriteDataTcp %lld\n", result);
-                            if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)data.data, sendlength)) != sendlength)
-                                printf("WriteDataTcp %lld\n", result);
-                            printf("sent ->%s\n", (char*)data.data);
-                        }
-                    }
-#endif
-                    //Sleep(10);
-                    auto search_time = (std::chrono::milliseconds(GetTickCount64()) - start_time).count();
-                    
-                    max_search_time = max(max_search_time, search_time);
-                    cout << ">>>>>>>>>>>> DB search time :" << search_time << " (max : " << max_search_time << ")" << endl;
-                }
-            //}
 
+            printf("connected.\n");
+            char ipbuf[INET_ADDRSTRLEN] = { 0, };
+            memset(ipbuf, 0x00, sizeof(char)* INET_ADDRSTRLEN);
+            strcpy(ipbuf, inet_ntoa(cli_addr.sin_addr));
+            printf("IP address : %s\n", ipbuf);
+            printf("Port : %d\n", ntohs(cli_addr.sin_port));
+            
+            log_output_ << GetTickCount64() << ": " << "connected. " << ipbuf << "( PORT:" << cli_addr.sin_port << ")"  <<  endl;
+            
+            connected_ports.insert(shared_ptr<TTcpConnectedPort>(TcpConnectedPort));
+            rh.connect(TcpConnectedPort->ConnectedFd);
+        }
+
+		for (auto& connected_fd : connected_ports) {
+			if (FD_ISSET(connected_fd->ConnectedFd, &ReadSet)) {
+				if (ReadDataTcp(connected_fd.get(), (unsigned char*)&DataStringLength, sizeof(DataStringLength)) != sizeof(DataStringLength))
+				{
+					printf("ReadDataTcp 1 error - close socket\n");
+                    log_output_ << GetTickCount64() << ": " << inet_ntoa(cli_addr.sin_addr) << "- ReadDataTcp 1 error - close socket" << endl;
+					closesocket(connected_fd->ConnectedFd);
+                    rh.disconnect(connected_fd->ConnectedFd);
+					connected_ports.erase(connected_fd);
+					break;
+				}
+                
+
+				unsigned short data_length = ntohs(DataStringLength);
+                //cout << "DataStringLength : " << data_length << endl;
+				if (data_length > sizeof(DataString))
+				{
+					printf("Data string length error : %d (%x)\n", data_length, data_length);
+                    log_output_ << GetTickCount64() << ": " << inet_ntoa(cli_addr.sin_addr) << "Data string length error :" << data_length << endl;
+                    return 0;
+					continue;
+				}
+
+                auto read_size = ReadDataTcp(connected_fd.get(), (unsigned char*)&DataString, data_length);
+				if (read_size != data_length)
+				{
+					printf("ReadDataTcp 2 error %lld vs %d\n", read_size, data_length);
+                    log_output_ << GetTickCount64() << ": " << inet_ntoa(cli_addr.sin_addr) << "ReadDataTcp 2 error  :" << data_length << endl;
+					continue;
+				}
+				//printf("Data is : %s\n", DataString);
+
+#ifdef SOLRDB
+                function<void(string)> callback = bind(&sendResponse, connected_fd, placeholders::_1);
+                /* TODO : Test Code for Solr DB */
+                rh.handle(connected_fd->ConnectedFd, DataString, move(callback));
+#else
+				if (partialMatch(dbp, DataString, DBRecord, sizeof(DBRecord)))
+				{
+					int sendlength = (int)(strlen((char*)DBRecord) + 1);
+					short SendMsgHdr = ntohs(sendlength);
+					if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)&SendMsgHdr, sizeof(SendMsgHdr))) != sizeof(SendMsgHdr))
+						printf("WriteDataTcp %lld\n", result);
+					if ((result = WriteDataTcp(connected_fd.get(), (unsigned char*)DBRecord, sendlength)) != sendlength)
+						printf("WriteDataTcp %lld\n", result);
+					printf("sent ->%s\n", (char*)DBRecord);
+				}
+#endif
+			}
         }
 
     }
@@ -304,29 +263,29 @@ int main()
     printf("connected\n");
     while (1)
     {
-        if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&PlateStringLength, sizeof(PlateStringLength)) != sizeof(PlateStringLength))
+        if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&DataStringLength, sizeof(DataStringLength)) != sizeof(DataStringLength))
         {
             printf("ReadDataTcp 1 error\n");
             return(-1);
         }
-        PlateStringLength = ntohs(PlateStringLength);
-        if (PlateStringLength > sizeof(PlateString))
+        DataStringLength = ntohs(DataStringLength);
+        if (DataStringLength > sizeof(DataString))
         {
-            printf("Plate string length  error\n");
+            printf("Data string length  error\n");
             return(-1);
         }
-        if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&PlateString, PlateStringLength) != PlateStringLength)
+        if (ReadDataTcp(TcpConnectedPort, (unsigned char*)&DataString, DataStringLength) != DataStringLength)
         {
             printf("ReadDataTcp 2 error\n");
             return(-1);
         }
-        printf("Plate is : %s\n", PlateString);
+        printf("Data is : %s\n", DataString);
 
         /* Zero out the DBTs before using them. */
         memset(&key, 0, sizeof(DBT));
         memset(&data, 0, sizeof(DBT));
-        key.data = PlateString;
-        key.size = (u_int32_t) (strlen(PlateString)+1);
+        key.data = DataString;
+        key.size = (u_int32_t) (strlen(DataString)+1);
         data.data = DBRecord;
         data.ulen = sizeof(DBRecord);
         data.flags = DB_DBT_USERMEM;
